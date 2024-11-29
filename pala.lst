@@ -1,0 +1,139 @@
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm
+  1   0000              ;PROBLEMAS:
+  2   0000                      ;1 - La fila está a mitad de pantalla en vez de en la última por abajo
+  3   0000                      ;El profe me dijo que lo hiciera con 8 bytes, pongo 5A (mitad pantalla), si pongo 5B ya se sale
+  4   0000                              ;(33)
+  5   0000              ;IMPORTANTE:
+  6   0000                      ;Tengo un problema con DeZog y al guardar los bits del teclado me los guardab al revés, por eso
+  7   0000                      ;en las (jr z, mueveizquierda) está puesto z y no nz
+  8   0000                      ;alomejor al compilar en otro ordenador que le vaya bien el DeZog bien hay que cambiar eso
+  9   0000
+ 10   0000              LONGPALA EQU 7                          ;define la longitud de la pala, podemos ajustarlo aquí
+ 11   0000              LIMITEDERECHO EQU 31 - LONGPALA         ;último pixel en el que puede dibujar la tabla
+ 12   0000              LIMITEIZQUIERDO EQU 1                   ;último pixel donde puede dibujar la tabla
+ 13   0000 00           COORD: DB 0                             ;Coordenadas por columnas de para la tabla
+ 14   0001
+ 15   0001              posicionpala:
+ 16   0001 3E 0C                ld a, (32-LONGPALA) / 2         ;para que la tabla se dibuje a la mitad de la pantalla (columnas)
+ 17   0003 32 00 00             ld (COORD), a                   ;guardamos la posicion en COORD
+ 18   0006
+ 19   0006
+ 20   0006              inicio:
+ 21   0006 F3                   di                              ;disable interruptions
+ 22   0007 31 00 00             ld sp,0                         ;set stack pointer to top of ram (RAMTOP)
+ 23   000A
+ 24   000A                                                              ;si todo son constantes el compilador de C te lo compila él mismo
+ 25   000A
+ 26   000A
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm(27): warning[rdlow]: Reading memory at low address: 0
+ 27   000A 3A 00 00             ld a, (COORD)                   ; Cargar la columna de la pala en A
+ 28   000D 6F                   ld l, a                         ; Cargar la columna en L
+ 29   000E 26 5B                ld h, $5B                       ; Ajustar el byte alto de la dirección
+ 30   0010 2E 00                ld l, $00                        ; Ajustar la fila de la pala
+ 31   0012 06 07                ld b, LONGPALA                  ;cargar la longitud de la pala
+ 32   0014 3E 10                ld a,2*8                        ;cargamos color rojo en a
+ 33   0016 CD 72 00             call pintarpixel                ;llamamos a pintarpixel
+ 34   0019
+ 35   0019
+ 36   0019
+ 37   0019              ;MOVER PALA ---------------------------------------------------------------------------------------------------------------------------
+ 38   0019
+ 39   0019
+ 40   0019              leerteclas:
+ 41   0019 01 FE FD             ld bc, $FDFE                    ;semifila donde esta la letra "A" y la "D"
+ 42   001C ED 78                in a,(c)
+ 43   001E
+ 44   001E CB 47                bit 0,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
+ 45   0020 28 0A                jr z, mueveizquierda            ;si "A" esta pulsanda se mueve a la izquierda
+ 46   0022
+ 47   0022 CB 57                bit 2,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
+ 48   0024 28 1D                jr z, muevederecha              ;si "D" esta pulsada se mueve a la derecha
+ 49   0026
+ 50   0026 CB 5F                bit 3,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm(51): error: Label not found: FinDelJuego
+ 51   0028 28 D6                jr z, FinDelJuego                       ;si se pulsa "F" se acaba el juego
+ 52   002A
+ 53   002A 18 ED                jr leerteclas                   ;a no ser que se pulse "F" seguimos en el bucle
+ 54   002C
+ 55   002C
+ 56   002C              mueveizquierda:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm(57): warning[rdlow]: Reading memory at low address: 0
+ 57   002C 3A 00 00             ld a,(COORD)                    ;cargamos la posicion
+ 58   002F FE 01                cp LIMITEIZQUIERDO              ;comprobamos si está en el límmite izquierdo
+ 59   0031 28 26                jr z, parademover               ;si está en el límite no movemos
+ 60   0033
+ 61   0033 3D                   dec a                           ; reducimos la posicion
+ 62   0034 32 00 00             ld (COORD),a                    ;guardamos la nueva posicion
+ 63   0037 85                   add a, l                        ; ajustamos la columna en base a COORD
+ 64   0038 6F                   ld l, a                         ; establecemos la posición horizontal
+ 65   0039 06 08                ld b, LONGPALA + 1              ; Cargar la longitud de la pala en B (ponemos +1 para que borre el pixel de la anterior posicion)
+ 66   003B CD 5B 00             CALL borrarpala                 ;borramos la anteior
+ 67   003E CD 6A 00             CALL pintarpala                 ;pintamos la nueva
+ 68   0041 18 16                jr parademover                  ;detenemos el movimiento
+ 69   0043
+ 70   0043              muevederecha:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm(71): warning[rdlow]: Reading memory at low address: 0
+ 71   0043 3A 00 00             ld a, (COORD)                   ; cargamos la posición actual de la pala
+ 72   0046 FE 18                cp LIMITEDERECHO              ; comprobamos si está en el límite izquierdo
+ 73   0048 28 0F                jr z, parademover               ; si está en el límite, no movemos
+ 74   004A 06 07                ld b,LONGPALA                   ; cargamos la longitud de la pala
+ 75   004C CD 5B 00             CALL borrarpala                 ; borramos la pala en la posición anterior
+ 76   004F 3C                   inc a                           ; aumentamos la posición para mover a la izquierda
+ 77   0050 32 00 00             ld (COORD), a                   ; guardamos la nueva posición
+ 78   0053 6F                   ld l, a                         ; establecemos la posición horizontal
+ 79   0054
+ 80   0054
+ 81   0054
+ 82   0054 CD 6A 00             CALL pintarpala                 ; pintamos la pala en la nueva posición
+ 83   0057 18 00                jr parademover                  ; detenemos el movimiento
+ 84   0059              parademover:
+ 85   0059
+ 86   0059 18 BE                jr leerteclas                   ;volvemos al bucle principal
+ 87   005B              borrarpala:
+ 88   005B CD 79 00         call esperar
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm(89): warning[rdlow]: Reading memory at low address: 0
+ 89   005E 3A 00 00         ld a, (COORD)                       ; cargamos la posición de columna de la pala en a
+ 90   0061 6F               ld l, a                             ; cargamos columna en L
+ 91   0062
+ 92   0062              borrarpixel:
+ 93   0062 36 00            ld (hl), 0                          ; escribimos color negro (0) en la posición actual
+ 94   0064 2C               inc l                               ; movemos a la siguiente posición en la fila
+ 95   0065 05               dec b                               ; decrementamos b
+ 96   0066 C2 62 00         jp nz, borrarpixel                  ; repetimos hasta borrar toda la pala
+ 97   0069 C9               ret                                 ; volver a donde se la llamó
+ 98   006A
+ 99   006A              pintarpala:
+100   006A
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm(101): warning[rdlow]: Reading memory at low address: 0
+101   006A 3A 00 00         ld a, (COORD)                      ; cargamos la posición de la pala en A
+102   006D 6F               ld l, a                             ; cargamos columna en L
+103   006E
+104   006E 06 07            ld b, LONGPALA                      ; cargamos la longitud de la pala en b
+105   0070 3E 10            ld a, 2*8                           ; cargamos el rojo (2 * 8)
+106   0072
+107   0072              pintarpixel:
+108   0072 77               ld (hl), a                          ; dibujamos la posicion actual de la pala
+109   0073 2C               inc l                               ; movemos a la siguiente posición en la fila
+110   0074 05               dec b                               ; decrementamos b (la longitud de la pala)
+111   0075 C2 72 00         jp nz, pintarpixel                  ; repetimos hasta dibujar toda la pala (que b sea 0)
+112   0078 C9               ret                                 ; Salir  y volver a donde se llamó
+113   0079
+114   0079              esperar:
+115   0079 F5                   PUSH AF                         ;guardamos los valores
+116   007A C5                   PUSH BC                         ;guardamos los valores
+117   007B 01 00 2F             LD BC, $2F00                    ;ponemos el número para que pierda tiempo en lo siguiente
+118   007E              ;-------------------------------------------------------------------------------------------------
+119   007E
+120   007E              esperar1:                               ;perdemos tiempo en este bucle
+121   007E 0D                   DEC C
+122   007F 20 FD                JR NZ, esperar1
+123   0081 05                   DEC B
+124   0082 20 FA                JR NZ,esperar1
+125   0084 C1                   POP BC                          ;recuperamos los valores
+126   0085 F1                   POP AF                          ;recuperamos los valores
+127   0086 C9                   RET                             ;volvemos a donde se llamó
+128   0087
+129   0087
+130   0087              ;-------------------------------------------------------------------------------------------------
+131   0087 18 FE        fin2:    jr fin2
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm

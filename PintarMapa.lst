@@ -1,0 +1,55 @@
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm
+ 1    0000              Mostrar_Mapa:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm(2): error: Label not found: map0
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm(2): warning[rdlow]: Reading memory at low address: 0
+ 2    0000 2A 00 00         ld hl, (map0)
+ 3    0003
+ 4    0003              Fila:
+ 5    0003 7E               ld a, (hl)  ; Leemos Y
+ 6    0004 FE FF            cp $FF
+ 7    0006 28 1B            jr z, Fin
+ 8    0008
+ 9    0008 47               ld b, a     ; Guardamos Y en B
+10    0009
+11    0009 23               inc hl
+12    000A 7E               ld a, (hl)  ; Leemos numero de ladrillos en la fila
+13    000B 4F               ld c, a
+14    000C
+15    000C 23               inc hl
+16    000D 16 02            ld d, 2     ; Columna = 2
+17    000F
+18    000F
+19    000F              Fila_Ladrillo:
+20    000F 7E               ld a, (hl)  ; Leemos color
+21    0010 FE 00            cp 0        ; Si no hay ladrillo, saltamos
+22    0012 28 08            jr z, Salto_Ladrillo
+23    0014
+24    0014 C5               PUSH bc     ; Guardamos B (Fila), C (Ladrillos)
+25    0015 D5               PUSH de     ; D (Columna)
+26    0016
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm(27): error: Label not found: CalcularAtributo
+27    0016 CD 00 00         call CalcularAtributo
+28    0019 77               ld (hl), a
+29    001A
+30    001A C1               pop bc
+31    001B D1               pop de
+32    001C
+33    001C              Salto_Ladrillo:
+34    001C 14               inc d   ; Mover a siguiente columna
+35    001D 23               inc hl  ; Mover a siguiente color
+36    001E 0D               dec c
+37    001F
+38    001F 20 EE            jr nz, Fila_Ladrillo    ; Sigue hasta que termine la fila
+39    0021
+40    0021 18 E0            jr Fila
+41    0023
+42    0023
+43    0023              Fin:
+44    0023              RET
+45    0023
+46    0023
+47    0023
+48    0023
+49    0023
+50    0023
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm

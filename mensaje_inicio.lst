@@ -1,0 +1,126 @@
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm
+ 1    0000              Pantalla_Ini:
+ 2    0000 3E 06            ld a, 6     ; Letra verde
+ 3    0002 06 5A            ld b, $5A     ; Columna
+ 4    0004 DD 21 92 00      ld ix, MensajeIniciar
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm(5): error: Label not found: PRINTAT
+ 5    0008 CD 00 00         call PRINTAT
+ 6    000B
+ 7    000B 06 17            ld b, 23                 ; Fila
+ 8    000D 0E 15            ld c, 21                 ; Columna
+ 9    000F CD 54 00         call CalcularAtributo    ; Calcular la dirección del atributo
+10    0012 3E 86            ld a,6+$80               ; Amarillo parpadeante
+11    0014 77               ld (hl),a                ; Establecer el atributo
+12    0015
+13    0015 CD 6F 00         call EsperarTecla        ; Leer el teclado hasta que se pulse S o N
+14    0018 C9               ret
+15    0019
+16    0019              Pantalla_Reinicio:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm(17): error: Label not found: CLEARSCR
+17    0019 CD 00 00         call CLEARSCR
+18    001C
+19    001C 3E 03            ld a, 3               ; Letra azul
+20    001E 06 04            ld b, 4               ; Coordenadas fila
+21    0020 0E 04            ld c, 4              ; Coordenadas columna
+22    0022 DD 21 B2 00      ld ix, MensajeFinDeJuego
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm(23): error: Label not found: PRINTAT
+23    0026 CD 00 00         call PRINTAT
+24    0029
+25    0029 3E 06            ld a, 6               ; Letra azul
+26    002B 06 0E            ld b, 14               ; Coordenadas fila
+27    002D 0E 02            ld c, 2              ; Coordenadas columna
+28    002F DD 21 CB 00      ld ix, MensajeReiniciar
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm(29): error: Label not found: PRINTAT
+29    0033 CD 00 00         call PRINTAT
+30    0036
+31    0036 06 0E            ld b, 14                 ; Fila
+32    0038 0E 1E            ld c, 30                 ; Columna
+33    003A CD 54 00         call CalcularAtributo    ; Calcular la dirección del atributo
+34    003D 3E 86            ld a,6+$80               ; Amarillo parpadeante
+35    003F 77               ld (hl),a                ; Establecer el atributo
+36    0040
+37    0040 CD 6F 00         call EsperarTecla
+38    0043 C9               ret
+39    0044
+40    0044              FinDelJuego:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm(41): error: Label not found: CLEARSCR
+41    0044 CD 00 00         call CLEARSCR
+42    0047
+43    0047 3E 82            ld a,2+$80               ; Letra roja
+44    0049 06 0B            ld b, 11                 ; Coordenadas Fila
+45    004B 0E 0B            ld c, 11                 ; Coordenadas Columna
+46    004D DD 21 A8 00      ld ix,MensajeFinal
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm(47): error: Label not found: PRINTAT
+47    0051 CD 00 00         call PRINTAT
+48    0054
+49    0054
+50    0054
+51    0054              CalcularAtributo:
+52    0054                                      ; Rutina que recibe en B,C las coordenadas de la pantalla (fila, columna)
+53    0054                                      ; y devuelve en HL la dirección del atributo correspondiente
+54    0054 F5               PUSH AF             ; Guardamos A en el stack
+55    0055 60               LD H,b              ; Los bits 4,5 de B deben ser los bits 0,1 de H
+56    0056 CB 3C            SRL H
+56    0058 CB 3C          SRL H
+56    005A CB 3C          SRL H
+57    005C 78               LD A,B              ; Los bits 0,1,2 de B deben ser los bits 5,6,7 de L
+58    005D CB 27            SLA A
+58    005F CB 27          SLA A
+58    0061 CB 27          SLA A
+58    0063 CB 27          SLA A
+58    0065 CB 27          SLA a
+59    0067 B1               OR c                ; Y C son los bits 0-4 de L
+60    0068 6F               LD L,A
+61    0069 01 00 58         LD BC, $5800        ; Le sumamos la dirección de comienzo de los atributos
+62    006C 09               ADD HL,BC
+63    006D F1               POP AF
+64    006E C9               RET
+65    006F
+66    006F              EsperarTecla:
+67    006F CD 77 00         call LeerTecla
+68    0072 FE FF            cp $FF
+69    0074 20 F9            jr nz,EsperarTecla  ; Esperar hasta que no haya tecla pulsada
+70    0076 C9               ret
+71    0077
+72    0077              LeerTecla:
+73    0077 01 FE 7F         ld bc,$7FFE         ; Escanear línea B,N,M,SYMB,Space
+74    007A ED 78            in a,(c)
+75    007C CB 5F            bit 3,a
+76    007E 28 C4            jr z,FinDelJuego    ; Han pulsado N
+77    0080 01 FE FD         ld bc,$FDFE         ; Escanear línea G,F,D,S,A
+78    0083 ED 78            in a,(c)
+79    0085 CB 4F            bit 1,a
+80    0087 20 EE            jr nz,LeerTecla     ; No han pulsado 'S'
+81    0089 18 00            jr SoltarTecla
+82    008B
+83    008B              SoltarTecla:
+84    008B ED 78            in a,(c)            ; Leer del puerto que se ha definido en LeerTecla
+85    008D FE FF            cp $FF              ; Comprobar que no hay tecla pulsada
+86    008F 20 FA            jr nz,SoltarTecla   ; Esperar hasta que no haya tecla pulsada
+87    0091 C9               ret
+88    0092
+89    0092
+90    0092 51 75 69 65  MensajeIniciar:   db "Quieres Jugar (S/N)? ",0  ; Mensaje para iniciar partida
+90    0096 72 65 73 20
+90    009A 4A 75 67 61
+90    009E 72 20 28 53
+90    00A2 2F 4E 29 3F
+90    00A6 20 00
+91    00A8 41 44 49 4F  MensajeFinal:     db "ADIOS!!!!",0
+91    00AC 53 21 21 21
+91    00B0 21 00
+92    00B2 4C 61 20 70  MensajeFinDeJuego:  db "La partida ha finalizado",0        ; Mensaje de fin de juego
+92    00B6 61 72 74 69
+92    00BA 64 61 20 68
+92    00BE 61 20 66 69
+92    00C2 6E 61 6C 69
+92    00C6 7A 61 64 6F
+92    00CA 00
+93    00CB 51 75 69 65  MensajeReiniciar: db "Quieres jugar otra partida?",0   ; Mensaje para reiniciar partida
+93    00CF 72 65 73 20
+93    00D3 6A 75 67 61
+93    00D7 72 20 6F 74
+93    00DB 72 61 20 70
+93    00DF 61 72 74 69
+93    00E3 64 61 3F 00
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm
