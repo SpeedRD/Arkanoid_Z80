@@ -1,55 +1,57 @@
-# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm
+# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm
  1    0000              Mostrar_Mapa:
-C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm(2): error: Label not found: map0
-C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm(2): warning[rdlow]: Reading memory at low address: 0
- 2    0000 2A 00 00         ld hl, (map0)
- 3    0003
- 4    0003              Fila:
- 5    0003 7E               ld a, (hl)  ; Leemos Y
- 6    0004 FE FF            cp $FF
- 7    0006 28 1B            jr z, Fin
- 8    0008
- 9    0008 47               ld b, a     ; Guardamos Y en B
-10    0009
-11    0009 23               inc hl
-12    000A 7E               ld a, (hl)  ; Leemos numero de ladrillos en la fila
-13    000B 4F               ld c, a
-14    000C
-15    000C 23               inc hl
-16    000D 16 02            ld d, 2     ; Columna = 2
-17    000F
-18    000F
-19    000F              Fila_Ladrillo:
-20    000F 7E               ld a, (hl)  ; Leemos color
-21    0010 FE 00            cp 0        ; Si no hay ladrillo, saltamos
-22    0012 28 08            jr z, Salto_Ladrillo
-23    0014
-24    0014 C5               PUSH bc     ; Guardamos B (Fila), C (Ladrillos)
-25    0015 D5               PUSH de     ; D (Columna)
-26    0016
-C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm(27): error: Label not found: CalcularAtributo
-27    0016 CD 00 00         call CalcularAtributo
-28    0019 77               ld (hl), a
-29    001A
-30    001A C1               pop bc
-31    001B D1               pop de
-32    001C
-33    001C              Salto_Ladrillo:
-34    001C 14               inc d   ; Mover a siguiente columna
-35    001D 23               inc hl  ; Mover a siguiente color
-36    001E 0D               dec c
-37    001F
-38    001F 20 EE            jr nz, Fila_Ladrillo    ; Sigue hasta que termine la fila
-39    0021
-40    0021 18 E0            jr Fila
-41    0023
-42    0023
-43    0023              Fin:
-44    0023              RET
-45    0023
-46    0023
-47    0023
-48    0023
-49    0023
-50    0023
-# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm
+D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm(2): error: Label not found: maplist
+D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm(2): warning[rdlow]: Reading memory at low address: 0
+ 2    0000 DD 2A 00 00      ld IX, (maplist)
+ 3    0004 DD 7E 00         LD A, (IX)
+ 4    0007 DD 23            INC IX
+ 5    0009
+ 6    0009              Fila:
+ 7    0009 DD 7E 00         ld a, (IX)  ; Leemos Y
+ 8    000C DD 23            INC IX
+ 9    000E
+10    000E 47               ld B, a     ; Guardamos Y en B
+11    000F 0E 01            ld C, 1     ; Columna = 1
+D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm(12): error: Label not found: CalcularAtributo
+12    0011 CD 00 00         call CalcularAtributo
+13    0014
+14    0014 DD 7E 00         ld a, (IX)  ; Leemos numero de ladrillos en la fila
+15    0017 DD 23            INC IX
+16    0019 47               ld B, a
+17    001A
+18    001A
+19    001A
+20    001A              Fila_Ladrillo:
+21    001A DD 7E 00         ld a, (IX)  ; Leemos color
+22    001D DD 23            INC IX
+23    001F
+24    001F CB 27            sla a       ; Multiplicamos por 8
+25    0021 CB 27            sla a
+26    0023 CB 27            sla a
+27    0025
+28    0025 77               ld (hl), a
+29    0026 23               INC HL
+30    0027 77               LD (HL), A
+31    0028 23               INC HL
+32    0029
+33    0029 10 EF            DJNZ Fila_Ladrillo    ; Sigue hasta que termine la fila
+34    002B
+35    002B DD 7E 00         ld a, (IX)
+36    002E FE FF            cp $FF      ; Si A es 255, va a Fin_Dibujo
+37    0030 28 05            jr z, Fin_Dibujo
+38    0032
+39    0032
+40    0032 18 D5            jr Fila
+D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm(41): error: Label not found: Pala_Juego
+41    0034 CD 00 00         call Pala_Juego
+42    0037
+43    0037
+44    0037              Fin_Dibujo:
+45    0037              RET
+46    0037
+47    0037
+48    0037
+49    0037
+50    0037
+51    0037
+# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm

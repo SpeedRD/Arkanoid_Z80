@@ -1,0 +1,29 @@
+# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
+ 1    0000              Juego:
+D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(2): error: Label not found: dibujar_tablero
+ 2    0000 CD 00 00         call dibujar_tablero
+D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(3): error: Label not found: Mostrar_Mapa
+ 3    0003 CD 00 00         call Mostrar_Mapa
+ 4    0006
+ 5    0006              Pala_Juego:
+D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(6): error: Label not found: posicionpala
+ 6    0006 CD 00 00         call posicionpala
+ 7    0009
+ 8    0009
+ 9    0009              Fin_Juego:
+10    0009 11 02 00         ld de, 2
+11    000C DD 19            add ix, de
+12    000E
+13    000E
+14    000E
+15    000E DD 7E 00         ld a, (ix)
+16    0011
+17    0011
+18    0011
+19    0011 18 ED            jr Juego
+20    0013
+21    0013              ReinicioJuego:
+D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(22): error: Label not found: Pantalla_Reinicio
+22    0013 CD 00 00         call Pantalla_Reinicio
+23    0016
+# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm

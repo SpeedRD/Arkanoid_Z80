@@ -21,11 +21,8 @@ empezar:
 
 flujo_juego:
 
-        CALL dibujar_tablero
-
-        
-
-        call Mostrar_Mapa
+        ld ix, (maplist)
+        CALL Juego
 
         call Pantalla_Reinicio  ;esta pantalla funciona, se puede probar pulsando f dentro del "juego"
 
@@ -40,3 +37,4 @@ flujo_juego:
         INCLUDE "tablero.asm"
         INCLUDE "PintarMapa.asm"
         INCLUDE "Mapas.asm"
+        INCLUDE "Partida.asm"
