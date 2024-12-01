@@ -22,9 +22,9 @@ empezar:
 flujo_juego:
 
         ld ix, (maplist)
+        
         CALL Juego
 
-        call Pantalla_Reinicio  ;esta pantalla funciona, se puede probar pulsando f dentro del "juego"
 
         jr flujo_juego
 

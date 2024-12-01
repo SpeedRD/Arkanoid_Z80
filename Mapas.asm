@@ -15,6 +15,7 @@ maplist: DEFW map0, map1, map2, map3
 maxLevelsMask: EQU 3
 
 
+
 ; ---> SIMPLE ROUND 0
 map0:   DEFB 82
         DEFB 3, 12, 0, 0, 2, 2, 2, 2, 2, 0, 0, 4, 7, 2
