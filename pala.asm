@@ -9,10 +9,8 @@ COORD: DB 0
 posicionpala:
         di                              ;disable interruptions
         ld sp,0                         ;set stack pointer to top of ram (RAMTOP)
-        
-                                                ;si todo son constantes el compilador de C te lo compila él mismo
-          
-       
+
+
         ld a, (POSICION)                   ; Cargar la columna de la pala en A
         ld l, a                         ; Cargar la columna en L
         ld h, $5A                       ; Ajustar la fila de la pala
@@ -66,17 +64,20 @@ parademover:
         jr leerteclas                   ;volvemos al bucle principal      
 ;------------------------------------------------------------------------------------------------------------------------------
 borrarpala:
-    call esperar                        ;llamamos a esperar para reducir velocidad
-    ld a, (POSICION)                    ; cargamos la posición de columna de la pala en a
-    ld l, a                             ; cargamos columna en L
-    
-    
+    call esperar                        ; reduce la velocidad
+    ld a, (POSICION)                    ; carga la posición de columna de la pala 
+    ld d, 0                             ; Parte alta de DE a 0
+    ld e, a                             ; carga posición de la columna 
+    ld hl, $5B00-32                     ; direccion de la última fila
+    add hl, de                          ; ajusta HL a la posición la pala
+    ld b, LONGITUDPALA                  ; carga la longitud de la pala
+
 borrarpixel:
-    ld (hl), 0                          ; escribimos color negro (0) en la posición actual
-    inc l                               ; movemos a la siguiente posición en la fila
-    dec b                               ; reducimos el contador de longitud
-    jp nz, borrarpixel                  ; repetimos hasta borrar toda la pala   
-    ret                                 ; volver a donde se la llamó
+    ld (hl), 0                          ; Escribir negro (0) en la posición actual
+    inc hl                              ; Mover a la siguiente posición en la fila
+    djnz borrarpixel                    ; Repetir hasta que B sea 0
+    ret                                 ; Volver a la llamada
+
 ;------------------------------------------------------------------------------------------------------
 pintarpala:
         ld a,(POSICION+1)               ;cargamos la siguiente posicion en a
@@ -117,8 +118,6 @@ esperar1:                               ;perdemos tiempo en este bucle
         POP BC                          ;recuperamos los valores
         POP AF                          ;recuperamos los valores
         RET                             ;volvemos a donde se llamó
-
-
 
 ;-------------------------------------------------------------------------------------------------
 end:
