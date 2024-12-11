@@ -1,4 +1,4 @@
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\main.asm
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\main.asm
   1   0000              ; Integrantes y porcentajes
   2   0000              ; Alba Garcia Rivas -> 31%
   3   0000              ; Eduardo Jose Cabreja Perez -> 38%
@@ -22,9 +22,9 @@
  21   800A
  22   800A              flujo_juego:
  23   800A
- 24   800A DD 2A D1 9B          ld ix, (maplist)
+ 24   800A DD 2A CD 9B          ld ix, (maplist)
  25   800E
- 26   800E CD 64 9E             CALL Juego
+ 26   800E CD 60 9E             CALL Juego
  27   8011
  28   8011
  29   8011 18 F7                jr flujo_juego
@@ -32,7 +32,7 @@
  31   8013
  32   8013
  33   8013                      INCLUDE "Pantalla_Inicio.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Pantalla_Inicio.asm
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Pantalla_Inicio.asm
   1+  8013              Main_Pantalla:
   2+  8013 DD 21 3B 80      LD IX, RLEData
   3+  8017 21 00 40         LD HL, $4000
@@ -1618,9 +1618,9 @@
 292+  9666
 293+  9666
 294+  9666
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Pantalla_Inicio.asm
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Pantalla_Inicio.asm
  34   9666                      INCLUDE "L30.3 - printat.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\L30.3 - printat.asm
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\L30.3 - printat.asm
   1+  9666              ; -------------------------------
   2+  9666              ; ZX Spectrum Text print library
   3+  9666              ; Daniel León - AOC - UFV 2020
@@ -1785,9 +1785,9 @@
 161+  96EA
 162+  96EA              CHARSET: incbin "charset.bin"			; Charset used
 163+  99EA
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\L30.3 - printat.asm
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\L30.3 - printat.asm
  35   99EA                      INCLUDE "mensaje_inicio.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\mensaje_inicio.asm
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm
   1+  99EA              Pantalla_Ini:
   2+  99EA 3E 06            ld a, 6     ; Letra verde
   3+  99EC 06 17            ld b, 23    ; Coordenadas para el mensaje de inicio, Fila
@@ -1907,477 +1907,583 @@
  94+  9AC9 72 61 20 70
  94+  9ACD 61 72 74 69
  94+  9AD1 64 61 3F 00
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\mensaje_inicio.asm
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\mensaje_inicio.asm
  36   9AD5                      INCLUDE "pala.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\pala.asm
-  1+  9AD5              LONGITUDPALA EQU 7                          ;define la longitud de la pala, podemos ajustarlo aquí
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm
+  1+  9AD5              LONGITUDPALA EQU 30                          ;define la longitud de la pala, podemos ajustarlo aquí
   2+  9AD5              LIMITEDERECHO EQU 31 - LONGITUDPALA         ;último pixel en el que puede dibujar la tabla
   3+  9AD5              LIMITEIZQUIERDO EQU 1                   ;último pixel donde puede dibujar la tabla
-  4+  9AD5 0E 03        POSICION: DB 14,3                       ;variable para la posicion de la pala
+  4+  9AD5 01 01        POSICION: DB 1,1                       ;variable para la posicion de la pala
   5+  9AD7              COLORPALA EQU 2*8                       ;color de la pala
   6+  9AD7              CONTADOR EQU $06FF                      ;ajustar para cambiar la velocidad de la pala
   7+  9AD7 00           COORD: DB 0
   8+  9AD8
   9+  9AD8              posicionpala:
- 10+  9AD8 F3                   di                              ;disable interruptions
- 11+  9AD9 31 00 00             ld sp,0                         ;set stack pointer to top of ram (RAMTOP)
- 12+  9ADC
- 13+  9ADC
- 14+  9ADC 3A D5 9A             ld a, (POSICION)                   ; Cargar la columna de la pala en A
- 15+  9ADF 6F                   ld l, a                         ; Cargar la columna en L
- 16+  9AE0 26 5A                ld h, $5A                       ; Ajustar la fila de la pala
- 17+  9AE2 06 07                ld b,LONGITUDPALA                   ;cargar la longitud de la pala
- 18+  9AE4 CD 3D 9B             call pintarpala                ;llamamos a pintarpixel
- 19+  9AE7
- 20+  9AE7
- 21+  9AE7
- 22+  9AE7              ;MOVER PALA ---------------------------------------------------------------------------------------------------------------------------
- 23+  9AE7
- 24+  9AE7
- 25+  9AE7              leerteclas:
- 26+  9AE7 01 FE FD             ld bc, $FDFE                    ;semifila donde esta la letra "A" y la "D"
- 27+  9AEA ED 78                in a,(c)
+ 10+  9AD8 3A D5 9A             ld a, (POSICION)                   ; Cargar la columna de la pala en A
+ 11+  9ADB 6F                   ld l, a                         ; Cargar la columna en L
+ 12+  9ADC 26 5A                ld h, $5A                       ; Ajustar la fila de la pala
+ 13+  9ADE 06 1E                ld b,LONGITUDPALA                   ;cargar la longitud de la pala
+ 14+  9AE0 CD 39 9B             call pintarpala                ;llamamos a pintarpixel
+ 15+  9AE3                      ;ld d,0
+ 16+  9AE3
+ 17+  9AE3
+ 18+  9AE3
+ 19+  9AE3              ;MOVER PALA ---------------------------------------------------------------------------------------------------------------------------
+ 20+  9AE3
+ 21+  9AE3
+ 22+  9AE3              leerteclas:
+ 23+  9AE3 01 FE FD             ld bc, $FDFE                    ;semifila donde esta la letra "A" y la "D"
+ 24+  9AE6 ED 78                in a,(c)
+ 25+  9AE8
+ 26+  9AE8 CB 47                bit 0,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
+ 27+  9AEA 28 0B                jr z, mueveizquierda            ;si "A" esta pulsanda se mueve a la izquierda
  28+  9AEC
- 29+  9AEC CB 47                bit 0,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
- 30+  9AEE 28 0A                jr z, mueveizquierda            ;si "A" esta pulsanda se mueve a la izquierda
+ 29+  9AEC CB 57                bit 2,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
+ 30+  9AEE 28 1D                jr z, muevederecha              ;si "D" esta pulsada se mueve a la derecha
  31+  9AF0
- 32+  9AF0 CB 57                bit 2,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
- 33+  9AF2 28 1C                jr z, muevederecha              ;si "D" esta pulsada se mueve a la derecha
- 34+  9AF4
- 35+  9AF4 CB 5F                bit 3,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
- 36+  9AF6 28 75                jr z, end                        ;si se pulsa "F" se acaba el juego
- 37+  9AF8
- 38+  9AF8 18 ED                jr leerteclas                   ;a no ser que se pulse "F" seguimos en el bucle
- 39+  9AFA
- 40+  9AFA
- 41+  9AFA              mueveizquierda:
- 42+  9AFA 3A D5 9A         ld a, (POSICION)                ; Cargamos la posición actual de la pala
- 43+  9AFD FE 01            cp LIMITEIZQUIERDO              ; Comprobamos si está en el límite izquierdo
- 44+  9AFF 28 25            jr z, parademover               ; Si está en el límite, no movemos
- 45+  9B01 CD 28 9B         CALL borrarpala                 ; Borramos la pala en la posición anterior
- 46+  9B04 3D               dec a                           ; Reducimos la posición
- 47+  9B05 32 D5 9A         ld (POSICION), a                ; Guardamos la nueva posición
- 48+  9B08 CD 3D 9B         CALL pintarpala                 ; Pintamos la pala en la nueva posición
- 49+  9B0B CD 5F 9B         CALL esperar                    ; Añadimos un retraso para reducir la sensibilidad
- 50+  9B0E 18 16            jr parademover                  ; Salimos del movimiento
- 51+  9B10
- 52+  9B10              muevederecha:
- 53+  9B10 3A D5 9A         ld a, (POSICION)                ; Cargamos la posición actual de la pala
- 54+  9B13 FE 18            cp LIMITEDERECHO                ; Comprobamos si está en el límite derecho
- 55+  9B15 28 0F            jr z, parademover               ; Si está en el límite, no movemos
- 56+  9B17 CD 28 9B         CALL borrarpala                 ; Borramos la pala en la posición anterior
- 57+  9B1A 3C               inc a                           ; Aumentamos la posición
- 58+  9B1B 32 D5 9A         ld (POSICION), a                ; Guardamos la nueva posición
- 59+  9B1E CD 3D 9B         CALL pintarpala                 ; Pintamos la pala en la nueva posición
- 60+  9B21 CD 5F 9B         CALL esperar                    ; Añadimos un retraso para reducir la sensibilidad
- 61+  9B24 18 00            jr parademover                  ; Salimos del movimiento
- 62+  9B26
- 63+  9B26              parademover:
- 64+  9B26 18 BF                jr leerteclas                   ;volvemos al bucle principal
- 65+  9B28              ;------------------------------------------------------------------------------------------------------------------------------
- 66+  9B28              borrarpala:
- 67+  9B28 CD 5F 9B         call esperar                        ; reduce la velocidad
- 68+  9B2B 3A D5 9A         ld a, (POSICION)                    ; carga la posición de columna de la pala
- 69+  9B2E 16 00            ld d, 0                             ; Parte alta de DE a 0
- 70+  9B30 5F               ld e, a                             ; carga posición de la columna
- 71+  9B31 21 E0 5A         ld hl, $5B00-32                     ; direccion de la última fila
- 72+  9B34 19               add hl, de                          ; ajusta HL a la posición la pala
- 73+  9B35 06 07            ld b, LONGITUDPALA                  ; carga la longitud de la pala
- 74+  9B37
- 75+  9B37              borrarpixel:
- 76+  9B37 36 00            ld (hl), 0                          ; Escribir negro (0) en la posición actual
- 77+  9B39 23               inc hl                              ; Mover a la siguiente posición en la fila
- 78+  9B3A 10 FB            djnz borrarpixel                    ; Repetir hasta que B sea 0
- 79+  9B3C C9               ret                                 ; Volver a la llamada
- 80+  9B3D
- 81+  9B3D              ;------------------------------------------------------------------------------------------------------
- 82+  9B3D              pintarpala:
- 83+  9B3D 3A D6 9A             ld a,(POSICION+1)               ;cargamos la siguiente posicion en a
- 84+  9B40 B7                   or a
- 85+  9B41 20 05                jr nz, pintarpala1              ;vamos a pinterapala1
- 86+  9B43 0E 00                ld c,0                          ;cargamos el color negro
- 87+  9B45 CD 51 9B             call dibujarpalacolor           ;vamos a dibujarpalacolor
- 88+  9B48
- 89+  9B48              pintarpala1:
- 90+  9B48 3A D5 9A             ld a,(POSICION)                 ;cargamos la posicion de la pala en a
- 91+  9B4B 0E 10                ld c,COLORPALA                  ;cargamos el color de la pala
- 92+  9B4D CD 51 9B             call dibujarpalacolor           ;vamos a dibujarcolor
- 93+  9B50 C9                   ret                             ;volvemos a donde se llamó a la etiqueta
- 94+  9B51
- 95+  9B51              dibujarpalacolor:
- 96+  9B51 06 07                ld b,LONGITUDPALA               ;cargamos la longitud de la pala en b
- 97+  9B53 21 E0 5A             ld hl, $5B00-32                 ;en la última fila
- 98+  9B56 16 00                ld d,0                          ;cargamos el negro en d
- 99+  9B58 5F                   ld e,a                          ;cargamos la posicion en e
-100+  9B59 19                   add hl, de                      ;colocamos color y posicion
-101+  9B5A
-102+  9B5A              dibujarpalacolor1:
-103+  9B5A 71                   ld(hl),c                        ;cargamos el color de la pala
-104+  9B5B 23                   inc hl                          ;aumentamos hl
-105+  9B5C 10 FC                djnz dibujarpalacolor1          ;repetimoshasta que esté pintada
-106+  9B5E C9                   ret                             ;volvemos a donde se llamó a la función
-107+  9B5F              ;-------------------------------------------------------------------------------------------------
-108+  9B5F              esperar:
-109+  9B5F F5                   PUSH AF                         ;guardamos los valores
-110+  9B60 C5                   PUSH BC                         ;guardamos los valores
-111+  9B61 01 FF 06             LD BC, CONTADOR                 ;ponemos el contador para que se repita y pierda el tiempo establecido
-112+  9B64
-113+  9B64              esperar1:                               ;perdemos tiempo en este bucle
-114+  9B64 0D                   DEC C
-115+  9B65 20 FD                JR NZ, esperar1
-116+  9B67 05                   DEC B
-117+  9B68 20 FA                JR NZ,esperar1
-118+  9B6A C1                   POP BC                          ;recuperamos los valores
-119+  9B6B F1                   POP AF                          ;recuperamos los valores
-120+  9B6C C9                   RET                             ;volvemos a donde se llamó
-121+  9B6D
-122+  9B6D              ;-------------------------------------------------------------------------------------------------
-123+  9B6D              end:
-124+  9B6D CD 6D 9E         call Fin_Juego
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\pala.asm
- 37   9B70                      INCLUDE "tablero.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\tablero.asm
-  1+  9B70              dibujar_tablero:
-  2+  9B70 CD D7 96         call CLEARSCR   ; Limpiar toda la pantalla
-  3+  9B73
-  4+  9B73                  ; Dibujar el borde izquierdo
-  5+  9B73 21 00 58         ld hl, $5800 + 0 * 32 + 0 ; Dirección de memoria de la pantalla para el borde izquierdo
-  6+  9B76 11 20 00         ld de, $0020              ; Posición vertical (Y)
-  7+  9B79 3E 0F            ld a, 1 * 8 + 7           ; Color del borde
-  8+  9B7B 06 18            ld b, 24                  ; Número de filas del borde izquierdo
-  9+  9B7D
- 10+  9B7D              borde_izquierdo:
- 11+  9B7D 77               ld (hl), a               ; Escribir el color en la pantalla
- 12+  9B7E 19               add hl, de               ; Mover la posición a la siguiente fila
- 13+  9B7F 10 FC            djnz borde_izquierdo     ; Decrementar B y repetir hasta que B sea cero
- 14+  9B81
- 15+  9B81                  ; Dibujar el borde derecho
- 16+  9B81 21 1F 58         ld hl, $5800 + 0 * 32 + 31 ; Dirección de memoria de la pantalla para el borde derecho
- 17+  9B84 11 20 00         ld de, $0020               ; Posición vertical (Y)
- 18+  9B87 3E 0F            ld a, 1 * 8 + 7            ; Color del borde
- 19+  9B89 06 18            ld b, 24                   ; Número de filas del borde derecho
- 20+  9B8B
- 21+  9B8B              borde_derecho:
- 22+  9B8B 77               ld (hl), a               ; Escribir el color en la pantalla
- 23+  9B8C 19               add hl, de               ; Mover la posición a la siguiente fila
- 24+  9B8D 10 FC            djnz borde_derecho       ; Decrementar B y repetir hasta que B sea cero
- 25+  9B8F
- 26+  9B8F                  ; Dibujar la parte de arriba
- 27+  9B8F 21 01 58         ld hl, $5800 + 0 * 32 + 1 ; Dirección de memoria de la pantalla para la base
- 28+  9B92 3E 0F            ld a, 1 * 8 + 7            ; Color de la base
- 29+  9B94 06 20            ld b, 32               ; Número de columnas de la base
- 30+  9B96
- 31+  9B96              base:
- 32+  9B96 77               ld (hl), a              ; Escribir el color en la pantalla
- 33+  9B97 23               inc hl                   ; Mover la posición a la siguiente columna
- 34+  9B98 10 FC            djnz base                ; Decrementar B y repetir hasta que B sea cero
- 35+  9B9A
- 36+  9B9A C9               ret
- 37+  9B9B
- 38+  9B9B 18 FE        fin_dibujar_tablero: jr fin_dibujar_tablero
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\tablero.asm
- 38   9B9D                      INCLUDE "PintarMapa.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm
-  1+  9B9D              Mostrar_Mapa:
-  2+  9B9D DD 7E 00         LD A, (IX)
-  3+  9BA0 DD 23            INC IX
-  4+  9BA2
-  5+  9BA2              Fila:
-  6+  9BA2 DD 7E 00         ld a, (IX)  ; Leemos Y
-  7+  9BA5 DD 23            INC IX
-  8+  9BA7
-  9+  9BA7 47               ld B, a     ; Guardamos Y en B
- 10+  9BA8 0E 01            ld C, 1     ; Columna = 1
- 11+  9BAA CD 42 9A         call CalcularAtributo
- 12+  9BAD
- 13+  9BAD DD 7E 00         ld a, (IX)  ; Leemos numero de ladrillos en la fila
- 14+  9BB0 DD 23            INC IX
- 15+  9BB2 47               ld B, a
- 16+  9BB3
- 17+  9BB3
- 18+  9BB3
- 19+  9BB3              Fila_Ladrillo:
- 20+  9BB3 DD 7E 00         ld a, (IX)  ; Leemos color
- 21+  9BB6 DD 23            INC IX
- 22+  9BB8
- 23+  9BB8 CB 27            sla a       ; Multiplicamos por 8
- 24+  9BBA CB 27            sla a
- 25+  9BBC CB 27            sla a
- 26+  9BBE
- 27+  9BBE 77               ld (hl), a
- 28+  9BBF 23               INC HL
- 29+  9BC0 77               LD (HL), A
- 30+  9BC1 23               INC HL
- 31+  9BC2
- 32+  9BC2 10 EF            DJNZ Fila_Ladrillo    ; Sigue hasta que termine la fila
- 33+  9BC4
- 34+  9BC4 DD 7E 00         ld a, (IX)
- 35+  9BC7 FE FF            cp $FF                ; Si A es 255, va a Fin_Dibujo
- 36+  9BC9 28 05            jr z, Fin_Dibujo
- 37+  9BCB
- 38+  9BCB
- 39+  9BCB 18 D5            jr Fila
- 40+  9BCD CD 6A 9E         call Pala_Juego
- 41+  9BD0
- 42+  9BD0
- 43+  9BD0              Fin_Dibujo:
- 44+  9BD0
- 45+  9BD0 C9               RET
- 46+  9BD1
- 47+  9BD1
- 48+  9BD1
- 49+  9BD1
- 50+  9BD1
- 51+  9BD1
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm
- 39   9BD1                      INCLUDE "Mapas.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Mapas.asm
-  1+  9BD1              ;--------------------------------------------------------------------------------------
-  2+  9BD1              ; Arkanoid generated levels from text file
-  3+  9BD1              ; Converter in Python by Daniel Leon (UFV) for AOC 2024/2025
-  4+  9BD1              ;--------------------------------------------------------------------------------------
-  5+  9BD1              ; MAP ENCODING:
-  6+  9BD1              ;   Byte 0     : Y Coordinate for row
-  7+  9BD1              ;   Byte 1     : Number of elements in row
-  8+  9BD1              ;   Bytes 2..n : color of brick  (0..8)
-  9+  9BD1              ;      color=8 means indestructible brick
- 10+  9BD1              ;      color=0 means no brick
- 11+  9BD1              ;   Y coordinate=255 means end of map
- 12+  9BD1              ;--------------------------------------------------------------------------------------
- 13+  9BD1
- 14+  9BD1 D9 9B 5E 9C  maplist: DEFW map0, map1, map2, map3
- 14+  9BD5 FF 9C 70 9D
- 15+  9BD9              maxLevelsMask: EQU 3
- 16+  9BD9
- 17+  9BD9
- 18+  9BD9
- 19+  9BD9              ; ---> SIMPLE ROUND 0
- 20+  9BD9 52           map0:   DEFB 82
- 21+  9BDA 03 0C 00 00          DEFB 3, 12, 0, 0, 2, 2, 2, 2, 2, 0, 0, 4, 7, 2
- 21+  9BDE 02 02 02 02
- 21+  9BE2 02 00 00 04
- 21+  9BE6 07 02
- 22+  9BE8 04 0C 00 00          DEFB 4, 12, 0, 0, 6, 6, 6, 6, 6, 0, 0, 4, 7, 2
- 22+  9BEC 06 06 06 06
- 22+  9BF0 06 00 00 04
- 22+  9BF4 07 02
- 23+  9BF6 05 0C 00 00          DEFB 5, 12, 0, 0, 6, 6, 6, 6, 6, 0, 0, 4, 7, 2
- 23+  9BFA 06 06 06 06
- 23+  9BFE 06 00 00 04
- 23+  9C02 07 02
- 24+  9C04 06 0C 00 00          DEFB 6, 12, 0, 0, 2, 2, 2, 2, 2, 0, 0, 4, 7, 2
- 24+  9C08 02 02 02 02
- 24+  9C0C 02 00 00 04
- 24+  9C10 07 02
- 25+  9C12 09 0D 00 00          DEFB 9, 13, 0, 0, 2, 2, 2, 2, 2, 0, 1, 6, 1, 1, 1
- 25+  9C16 02 02 02 02
- 25+  9C1A 02 00 01 06
- 25+  9C1E 01 01 01
- 26+  9C21 0A 0D 00 00          DEFB 10, 13, 0, 0, 2, 2, 7, 2, 2, 0, 1, 6, 1, 1, 1
- 26+  9C25 02 02 07 02
- 26+  9C29 02 00 01 06
- 26+  9C2D 01 01 01
- 27+  9C30 0B 0D 00 00          DEFB 11, 13, 0, 0, 2, 7, 7, 7, 2, 0, 6, 6, 6, 6, 6
- 27+  9C34 02 07 07 07
- 27+  9C38 02 00 06 06
- 27+  9C3C 06 06 06
- 28+  9C3F 0C 0D 00 00          DEFB 12, 13, 0, 0, 2, 2, 7, 2, 2, 0, 1, 6, 1, 1, 1
- 28+  9C43 02 02 07 02
- 28+  9C47 02 00 01 06
- 28+  9C4B 01 01 01
- 29+  9C4E 0D 0D 00 00          DEFB 13, 13, 0, 0, 2, 2, 2, 2, 2, 0, 1, 6, 1, 1, 1
- 29+  9C52 02 02 02 02
- 29+  9C56 02 00 01 06
- 29+  9C5A 01 01 01
- 30+  9C5D FF                   DEFB 255
- 31+  9C5E
- 32+  9C5E              ; ---> ALIEN ROUND 2
- 33+  9C5E 47           map1:   DEFB 71
- 34+  9C5F 03 0B 00 00          DEFB 3, 11, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 6
- 34+  9C63 00 00 06 00
- 34+  9C67 00 00 00 00
- 34+  9C6B 06
- 35+  9C6C 04 0B 00 00          DEFB 4, 11, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 6
- 35+  9C70 00 00 06 00
- 35+  9C74 00 00 00 00
- 35+  9C78 06
- 36+  9C79 05 0A 00 00          DEFB 5, 10, 0, 0, 0, 0, 0, 6, 0, 0, 0, 6
+ 32+  9AF0 CB 5F                bit 3,a                         ;hay un problema en el dzog y me lo guarda negado, por eso en el siguiente ponemos "z" y no "nz"
+ 33+  9AF2 28 75                jr z, end                        ;si se pulsa "F" se acaba el juego
+ 34+  9AF4                      ;dec d
+ 35+  9AF4                      ;ret z
+ 36+  9AF4 18 ED                jr leerteclas                   ;a no ser que se pulse "F" seguimos en el bucle
+ 37+  9AF6 C9                   ret
+ 38+  9AF7
+ 39+  9AF7
+ 40+  9AF7
+ 41+  9AF7              mueveizquierda:
+ 42+  9AF7 3A D5 9A         ld a, (POSICION)                ; Cargamos la posición actual de la pala
+ 43+  9AFA FE 01            cp LIMITEIZQUIERDO              ; Comprobamos si está en el límite izquierdo
+ 44+  9AFC 28 25            jr z, parademover               ; Si está en el límite, no movemos
+ 45+  9AFE CD 24 9B         CALL borrarpala                 ; Borramos la pala en la posición anterior
+ 46+  9B01 3D               dec a                           ; Reducimos la posición
+ 47+  9B02 32 D5 9A         ld (POSICION), a                ; Guardamos la nueva posición
+ 48+  9B05 CD 39 9B         CALL pintarpala                 ; Pintamos la pala en la nueva posición
+ 49+  9B08 CD 5B 9B         CALL esperar                    ; Añadimos un retraso para reducir la sensibilidad
+ 50+  9B0B 18 16            jr parademover                  ; Salimos del movimiento
+ 51+  9B0D
+ 52+  9B0D              muevederecha:
+ 53+  9B0D 3A D5 9A         ld a, (POSICION)                ; Cargamos la posición actual de la pala
+ 54+  9B10 FE 01            cp LIMITEDERECHO                ; Comprobamos si está en el límite derecho
+ 55+  9B12 28 0F            jr z, parademover               ; Si está en el límite, no movemos
+ 56+  9B14 CD 24 9B         CALL borrarpala                 ; Borramos la pala en la posición anterior
+ 57+  9B17 3C               inc a                           ; Aumentamos la posición
+ 58+  9B18 32 D5 9A         ld (POSICION), a                ; Guardamos la nueva posición
+ 59+  9B1B CD 39 9B         CALL pintarpala                 ; Pintamos la pala en la nueva posición
+ 60+  9B1E CD 5B 9B         CALL esperar                    ; Añadimos un retraso para reducir la sensibilidad
+ 61+  9B21 18 00            jr parademover                  ; Salimos del movimiento
+ 62+  9B23
+ 63+  9B23              parademover:
+ 64+  9B23 C9                   ret                   ;volvemos al bucle principal
+ 65+  9B24              ;------------------------------------------------------------------------------------------------------------------------------
+ 66+  9B24              borrarpala:
+ 67+  9B24 CD 5B 9B         call esperar                        ; reduce la velocidad
+ 68+  9B27 3A D5 9A         ld a, (POSICION)                    ; carga la posición de columna de la pala
+ 69+  9B2A 16 00            ld d, 0                             ; Parte alta de DE a 0
+ 70+  9B2C 5F               ld e, a                             ; carga posición de la columna
+ 71+  9B2D 21 E0 5A         ld hl, $5B00-32                     ; direccion de la última fila
+ 72+  9B30 19               add hl, de                          ; ajusta HL a la posición la pala
+ 73+  9B31 06 1E            ld b, LONGITUDPALA                  ; carga la longitud de la pala
+ 74+  9B33
+ 75+  9B33              borrarpixel:
+ 76+  9B33 36 00            ld (hl), 0                          ; Escribir negro (0) en la posición actual
+ 77+  9B35 23               inc hl                              ; Mover a la siguiente posición en la fila
+ 78+  9B36 10 FB            djnz borrarpixel                    ; Repetir hasta que B sea 0
+ 79+  9B38 C9               ret                                 ; Volver a la llamada
+ 80+  9B39
+ 81+  9B39              ;------------------------------------------------------------------------------------------------------
+ 82+  9B39              pintarpala:
+ 83+  9B39 3A D6 9A             ld a,(POSICION+1)               ;cargamos la siguiente posicion en a
+ 84+  9B3C B7                   or a
+ 85+  9B3D 20 05                jr nz, pintarpala1              ;vamos a pinterapala1
+ 86+  9B3F 0E 00                ld c,0                          ;cargamos el color negro
+ 87+  9B41 CD 4D 9B             call dibujarpalacolor           ;vamos a dibujarpalacolor
+ 88+  9B44
+ 89+  9B44              pintarpala1:
+ 90+  9B44 3A D5 9A             ld a,(POSICION)                 ;cargamos la posicion de la pala en a
+ 91+  9B47 0E 10                ld c,COLORPALA                  ;cargamos el color de la pala
+ 92+  9B49 CD 4D 9B             call dibujarpalacolor           ;vamos a dibujarcolor
+ 93+  9B4C C9                   ret                             ;volvemos a donde se llamó a la etiqueta
+ 94+  9B4D
+ 95+  9B4D              dibujarpalacolor:
+ 96+  9B4D 06 1E                ld b,LONGITUDPALA               ;cargamos la longitud de la pala en b
+ 97+  9B4F 21 E0 5A             ld hl, $5B00-32                 ;en la última fila
+ 98+  9B52 16 00                ld d,0                          ;cargamos el negro en d
+ 99+  9B54 5F                   ld e,a                          ;cargamos la posicion en e
+100+  9B55 19                   add hl, de                      ;colocamos color y posicion
+101+  9B56
+102+  9B56              dibujarpalacolor1:
+103+  9B56 71                   ld(hl),c                        ;cargamos el color de la pala
+104+  9B57 23                   inc hl                          ;aumentamos hl
+105+  9B58 10 FC                djnz dibujarpalacolor1          ;repetimoshasta que esté pintada
+106+  9B5A C9                   ret                             ;volvemos a donde se llamó a la función
+107+  9B5B              ;-------------------------------------------------------------------------------------------------
+108+  9B5B              esperar:
+109+  9B5B F5                   PUSH AF                         ;guardamos los valores
+110+  9B5C C5                   PUSH BC                         ;guardamos los valores
+111+  9B5D 01 FF 06             LD BC, CONTADOR                 ;ponemos el contador para que se repita y pierda el tiempo establecido
+112+  9B60
+113+  9B60              esperar1:                               ;perdemos tiempo en este bucle
+114+  9B60 0D                   DEC C
+115+  9B61 20 FD                JR NZ, esperar1
+116+  9B63 05                   DEC B
+117+  9B64 20 FA                JR NZ,esperar1
+118+  9B66 C1                   POP BC                          ;recuperamos los valores
+119+  9B67 F1                   POP AF                          ;recuperamos los valores
+120+  9B68 C9                   RET                             ;volvemos a donde se llamó
+121+  9B69
+122+  9B69              ;-------------------------------------------------------------------------------------------------
+123+  9B69              end:
+124+  9B69 CD 6C 9E         call Fin_Juego
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pala.asm
+ 37   9B6C                      INCLUDE "tablero.asm"
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\tablero.asm
+  1+  9B6C              dibujar_tablero:
+  2+  9B6C CD D7 96         call CLEARSCR   ; Limpiar toda la pantalla
+  3+  9B6F
+  4+  9B6F                  ; Dibujar el borde izquierdo
+  5+  9B6F 21 00 58         ld hl, $5800 + 0 * 32 + 0 ; Dirección de memoria de la pantalla para el borde izquierdo
+  6+  9B72 11 20 00         ld de, $0020              ; Posición vertical (Y)
+  7+  9B75 3E 0F            ld a, 1 * 8 + 7           ; Color del borde
+  8+  9B77 06 18            ld b, 24                  ; Número de filas del borde izquierdo
+  9+  9B79
+ 10+  9B79              borde_izquierdo:
+ 11+  9B79 77               ld (hl), a               ; Escribir el color en la pantalla
+ 12+  9B7A 19               add hl, de               ; Mover la posición a la siguiente fila
+ 13+  9B7B 10 FC            djnz borde_izquierdo     ; Decrementar B y repetir hasta que B sea cero
+ 14+  9B7D
+ 15+  9B7D                  ; Dibujar el borde derecho
+ 16+  9B7D 21 1F 58         ld hl, $5800 + 0 * 32 + 31 ; Dirección de memoria de la pantalla para el borde derecho
+ 17+  9B80 11 20 00         ld de, $0020               ; Posición vertical (Y)
+ 18+  9B83 3E 0F            ld a, 1 * 8 + 7            ; Color del borde
+ 19+  9B85 06 18            ld b, 24                   ; Número de filas del borde derecho
+ 20+  9B87
+ 21+  9B87              borde_derecho:
+ 22+  9B87 77               ld (hl), a               ; Escribir el color en la pantalla
+ 23+  9B88 19               add hl, de               ; Mover la posición a la siguiente fila
+ 24+  9B89 10 FC            djnz borde_derecho       ; Decrementar B y repetir hasta que B sea cero
+ 25+  9B8B
+ 26+  9B8B                  ; Dibujar la parte de arriba
+ 27+  9B8B 21 01 58         ld hl, $5800 + 0 * 32 + 1 ; Dirección de memoria de la pantalla para la base
+ 28+  9B8E 3E 0F            ld a, 1 * 8 + 7            ; Color de la base
+ 29+  9B90 06 20            ld b, 32               ; Número de columnas de la base
+ 30+  9B92
+ 31+  9B92              base:
+ 32+  9B92 77               ld (hl), a              ; Escribir el color en la pantalla
+ 33+  9B93 23               inc hl                   ; Mover la posición a la siguiente columna
+ 34+  9B94 10 FC            djnz base                ; Decrementar B y repetir hasta que B sea cero
+ 35+  9B96
+ 36+  9B96 C9               ret
+ 37+  9B97
+ 38+  9B97 18 FE        fin_dibujar_tablero: jr fin_dibujar_tablero
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\tablero.asm
+ 38   9B99                      INCLUDE "PintarMapa.asm"
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm
+  1+  9B99              Mostrar_Mapa:
+  2+  9B99 DD 7E 00         LD A, (IX)
+  3+  9B9C DD 23            INC IX
+  4+  9B9E
+  5+  9B9E              Fila:
+  6+  9B9E DD 7E 00         ld a, (IX)  ; Leemos Y
+  7+  9BA1 DD 23            INC IX
+  8+  9BA3
+  9+  9BA3 47               ld B, a     ; Guardamos Y en B
+ 10+  9BA4 0E 01            ld C, 1     ; Columna = 1
+ 11+  9BA6 CD 42 9A         call CalcularAtributo
+ 12+  9BA9
+ 13+  9BA9 DD 7E 00         ld a, (IX)  ; Leemos numero de ladrillos en la fila
+ 14+  9BAC DD 23            INC IX
+ 15+  9BAE 47               ld B, a
+ 16+  9BAF
+ 17+  9BAF
+ 18+  9BAF
+ 19+  9BAF              Fila_Ladrillo:
+ 20+  9BAF DD 7E 00         ld a, (IX)  ; Leemos color
+ 21+  9BB2 DD 23            INC IX
+ 22+  9BB4
+ 23+  9BB4 CB 27            sla a       ; Multiplicamos por 8
+ 24+  9BB6 CB 27            sla a
+ 25+  9BB8 CB 27            sla a
+ 26+  9BBA
+ 27+  9BBA 77               ld (hl), a
+ 28+  9BBB 23               INC HL
+ 29+  9BBC 77               LD (HL), A
+ 30+  9BBD 23               INC HL
+ 31+  9BBE
+ 32+  9BBE 10 EF            DJNZ Fila_Ladrillo    ; Sigue hasta que termine la fila
+ 33+  9BC0
+ 34+  9BC0 DD 7E 00         ld a, (IX)
+ 35+  9BC3 FE FF            cp $FF                ; Si A es 255, va a Fin_Dibujo
+ 36+  9BC5 28 05            jr z, Fin_Dibujo
+ 37+  9BC7
+ 38+  9BC7
+ 39+  9BC7 18 D5            jr Fila
+ 40+  9BC9 CD 66 9E         call Pala_Juego
+ 41+  9BCC
+ 42+  9BCC
+ 43+  9BCC              Fin_Dibujo:
+ 44+  9BCC
+ 45+  9BCC C9               RET
+ 46+  9BCD
+ 47+  9BCD
+ 48+  9BCD
+ 49+  9BCD
+ 50+  9BCD
+ 51+  9BCD
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\PintarMapa.asm
+ 39   9BCD                      INCLUDE "Mapas.asm"
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Mapas.asm
+  1+  9BCD              ;--------------------------------------------------------------------------------------
+  2+  9BCD              ; Arkanoid generated levels from text file
+  3+  9BCD              ; Converter in Python by Daniel Leon (UFV) for AOC 2024/2025
+  4+  9BCD              ;--------------------------------------------------------------------------------------
+  5+  9BCD              ; MAP ENCODING:
+  6+  9BCD              ;   Byte 0     : Y Coordinate for row
+  7+  9BCD              ;   Byte 1     : Number of elements in row
+  8+  9BCD              ;   Bytes 2..n : color of brick  (0..8)
+  9+  9BCD              ;      color=8 means indestructible brick
+ 10+  9BCD              ;      color=0 means no brick
+ 11+  9BCD              ;   Y coordinate=255 means end of map
+ 12+  9BCD              ;--------------------------------------------------------------------------------------
+ 13+  9BCD
+ 14+  9BCD D5 9B 5A 9C  maplist: DEFW map0, map1, map2, map3
+ 14+  9BD1 FB 9C 6C 9D
+ 15+  9BD5              maxLevelsMask: EQU 3
+ 16+  9BD5
+ 17+  9BD5
+ 18+  9BD5
+ 19+  9BD5              ; ---> SIMPLE ROUND 0
+ 20+  9BD5 52           map0:   DEFB 82
+ 21+  9BD6 03 0C 00 00          DEFB 3, 12, 0, 0, 2, 2, 2, 2, 2, 0, 0, 4, 7, 2
+ 21+  9BDA 02 02 02 02
+ 21+  9BDE 02 00 00 04
+ 21+  9BE2 07 02
+ 22+  9BE4 04 0C 00 00          DEFB 4, 12, 0, 0, 6, 6, 6, 6, 6, 0, 0, 4, 7, 2
+ 22+  9BE8 06 06 06 06
+ 22+  9BEC 06 00 00 04
+ 22+  9BF0 07 02
+ 23+  9BF2 05 0C 00 00          DEFB 5, 12, 0, 0, 6, 6, 6, 6, 6, 0, 0, 4, 7, 2
+ 23+  9BF6 06 06 06 06
+ 23+  9BFA 06 00 00 04
+ 23+  9BFE 07 02
+ 24+  9C00 06 0C 00 00          DEFB 6, 12, 0, 0, 2, 2, 2, 2, 2, 0, 0, 4, 7, 2
+ 24+  9C04 02 02 02 02
+ 24+  9C08 02 00 00 04
+ 24+  9C0C 07 02
+ 25+  9C0E 09 0D 00 00          DEFB 9, 13, 0, 0, 2, 2, 2, 2, 2, 0, 1, 6, 1, 1, 1
+ 25+  9C12 02 02 02 02
+ 25+  9C16 02 00 01 06
+ 25+  9C1A 01 01 01
+ 26+  9C1D 0A 0D 00 00          DEFB 10, 13, 0, 0, 2, 2, 7, 2, 2, 0, 1, 6, 1, 1, 1
+ 26+  9C21 02 02 07 02
+ 26+  9C25 02 00 01 06
+ 26+  9C29 01 01 01
+ 27+  9C2C 0B 0D 00 00          DEFB 11, 13, 0, 0, 2, 7, 7, 7, 2, 0, 6, 6, 6, 6, 6
+ 27+  9C30 02 07 07 07
+ 27+  9C34 02 00 06 06
+ 27+  9C38 06 06 06
+ 28+  9C3B 0C 0D 00 00          DEFB 12, 13, 0, 0, 2, 2, 7, 2, 2, 0, 1, 6, 1, 1, 1
+ 28+  9C3F 02 02 07 02
+ 28+  9C43 02 00 01 06
+ 28+  9C47 01 01 01
+ 29+  9C4A 0D 0D 00 00          DEFB 13, 13, 0, 0, 2, 2, 2, 2, 2, 0, 1, 6, 1, 1, 1
+ 29+  9C4E 02 02 02 02
+ 29+  9C52 02 00 01 06
+ 29+  9C56 01 01 01
+ 30+  9C59 FF                   DEFB 255
+ 31+  9C5A
+ 32+  9C5A              ; ---> ALIEN ROUND 2
+ 33+  9C5A 47           map1:   DEFB 71
+ 34+  9C5B 03 0B 00 00          DEFB 3, 11, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 6
+ 34+  9C5F 00 00 06 00
+ 34+  9C63 00 00 00 00
+ 34+  9C67 06
+ 35+  9C68 04 0B 00 00          DEFB 4, 11, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 6
+ 35+  9C6C 00 00 06 00
+ 35+  9C70 00 00 00 00
+ 35+  9C74 06
+ 36+  9C75 05 0A 00 00          DEFB 5, 10, 0, 0, 0, 0, 0, 6, 0, 0, 0, 6
+ 36+  9C79 00 00 00 06
  36+  9C7D 00 00 00 06
- 36+  9C81 00 00 00 06
- 37+  9C85 06 0A 00 00          DEFB 6, 10, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7
- 37+  9C89 00 00 00 07
- 37+  9C8D 07 07 07 07
- 38+  9C91 07 0B 00 00          DEFB 7, 11, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7
- 38+  9C95 00 00 07 07
- 38+  9C99 07 07 07 07
- 38+  9C9D 07
- 39+  9C9E 08 0C 00 00          DEFB 8, 12, 0, 0, 0, 7, 7, 2, 7, 7, 7, 2, 7, 7
- 39+  9CA2 00 07 07 02
- 39+  9CA6 07 07 07 02
- 39+  9CAA 07 07
- 40+  9CAC 09 0C 00 00          DEFB 9, 12, 0, 0, 0, 7, 7, 2, 7, 7, 7, 2, 7, 7
- 40+  9CB0 00 07 07 02
- 40+  9CB4 07 07 07 02
- 40+  9CB8 07 07
- 41+  9CBA 0A 0C 00 00          DEFB 10, 12, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7
- 41+  9CBE 00 07 07 07
- 41+  9CC2 07 07 07 07
- 41+  9CC6 07 07
- 42+  9CC8 0B 0C 00 00          DEFB 11, 12, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7
- 42+  9CCC 00 07 07 07
- 42+  9CD0 07 07 07 07
- 42+  9CD4 07 07
- 43+  9CD6 0C 0C 00 00          DEFB 12, 12, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7
- 43+  9CDA 00 07 07 07
- 43+  9CDE 07 07 07 07
- 43+  9CE2 07 07
- 44+  9CE4 0D 0B 00 00          DEFB 13, 11, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 7
- 44+  9CE8 00 00 07 00
- 44+  9CEC 00 00 00 00
- 44+  9CF0 07
- 45+  9CF1 0E 0B 00 00          DEFB 14, 11, 0, 0, 0, 0, 7, 7, 7, 0, 7, 7, 7
- 45+  9CF5 00 00 07 07
- 45+  9CF9 07 00 07 07
- 45+  9CFD 07
- 46+  9CFE FF                   DEFB 255
- 47+  9CFF
- 48+  9CFF              ; ---> STAIR ROUND 2
- 49+  9CFF 4E           map2:   DEFB 78
- 50+  9D00 03 01 07             DEFB 3, 1, 7
- 51+  9D03 04 02 07 06          DEFB 4, 2, 7, 6
- 52+  9D07 05 03 07 06          DEFB 5, 3, 7, 6, 5
- 52+  9D0B 05
- 53+  9D0C 06 0D 07 06          DEFB 6, 13, 7, 6, 5, 4, 0, 0, 0, 0, 0, 8, 8, 8, 8
- 53+  9D10 05 04 00 00
- 53+  9D14 00 00 00 08
- 53+  9D18 08 08 08
- 54+  9D1B 07 05 07 06          DEFB 7, 5, 7, 6, 5, 4, 3
- 54+  9D1F 05 04 03
- 55+  9D22 08 06 07 06          DEFB 8, 6, 7, 6, 5, 4, 3, 2
- 55+  9D26 05 04 03 02
- 56+  9D2A 09 07 07 06          DEFB 9, 7, 7, 6, 5, 4, 3, 2, 1
- 56+  9D2E 05 04 03 02
- 56+  9D32 01
- 57+  9D33 0A 08 07 06          DEFB 10, 8, 7, 6, 5, 4, 3, 2, 1, 7
- 57+  9D37 05 04 03 02
- 57+  9D3B 01 07
- 58+  9D3D 0B 09 07 06          DEFB 11, 9, 7, 6, 5, 4, 3, 2, 1, 7, 6
- 58+  9D41 05 04 03 02
- 58+  9D45 01 07 06
- 59+  9D48 0C 0A 07 06          DEFB 12, 10, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5
- 59+  9D4C 05 04 03 02
- 59+  9D50 01 07 06 05
- 60+  9D54 0D 0B 07 06          DEFB 13, 11, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5, 4
- 60+  9D58 05 04 03 02
- 60+  9D5C 01 07 06 05
- 60+  9D60 04
- 61+  9D61 0E 0C 07 07          DEFB 14, 12, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
+ 37+  9C81 06 0A 00 00          DEFB 6, 10, 0, 0, 0, 0, 0, 7, 7, 7, 7, 7
+ 37+  9C85 00 00 00 07
+ 37+  9C89 07 07 07 07
+ 38+  9C8D 07 0B 00 00          DEFB 7, 11, 0, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7
+ 38+  9C91 00 00 07 07
+ 38+  9C95 07 07 07 07
+ 38+  9C99 07
+ 39+  9C9A 08 0C 00 00          DEFB 8, 12, 0, 0, 0, 7, 7, 2, 7, 7, 7, 2, 7, 7
+ 39+  9C9E 00 07 07 02
+ 39+  9CA2 07 07 07 02
+ 39+  9CA6 07 07
+ 40+  9CA8 09 0C 00 00          DEFB 9, 12, 0, 0, 0, 7, 7, 2, 7, 7, 7, 2, 7, 7
+ 40+  9CAC 00 07 07 02
+ 40+  9CB0 07 07 07 02
+ 40+  9CB4 07 07
+ 41+  9CB6 0A 0C 00 00          DEFB 10, 12, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7
+ 41+  9CBA 00 07 07 07
+ 41+  9CBE 07 07 07 07
+ 41+  9CC2 07 07
+ 42+  9CC4 0B 0C 00 00          DEFB 11, 12, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7
+ 42+  9CC8 00 07 07 07
+ 42+  9CCC 07 07 07 07
+ 42+  9CD0 07 07
+ 43+  9CD2 0C 0C 00 00          DEFB 12, 12, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7
+ 43+  9CD6 00 07 07 07
+ 43+  9CDA 07 07 07 07
+ 43+  9CDE 07 07
+ 44+  9CE0 0D 0B 00 00          DEFB 13, 11, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 7
+ 44+  9CE4 00 00 07 00
+ 44+  9CE8 00 00 00 00
+ 44+  9CEC 07
+ 45+  9CED 0E 0B 00 00          DEFB 14, 11, 0, 0, 0, 0, 7, 7, 7, 0, 7, 7, 7
+ 45+  9CF1 00 00 07 07
+ 45+  9CF5 07 00 07 07
+ 45+  9CF9 07
+ 46+  9CFA FF                   DEFB 255
+ 47+  9CFB
+ 48+  9CFB              ; ---> STAIR ROUND 2
+ 49+  9CFB 4E           map2:   DEFB 78
+ 50+  9CFC 03 01 07             DEFB 3, 1, 7
+ 51+  9CFF 04 02 07 06          DEFB 4, 2, 7, 6
+ 52+  9D03 05 03 07 06          DEFB 5, 3, 7, 6, 5
+ 52+  9D07 05
+ 53+  9D08 06 0D 07 06          DEFB 6, 13, 7, 6, 5, 4, 0, 0, 0, 0, 0, 8, 8, 8, 8
+ 53+  9D0C 05 04 00 00
+ 53+  9D10 00 00 00 08
+ 53+  9D14 08 08 08
+ 54+  9D17 07 05 07 06          DEFB 7, 5, 7, 6, 5, 4, 3
+ 54+  9D1B 05 04 03
+ 55+  9D1E 08 06 07 06          DEFB 8, 6, 7, 6, 5, 4, 3, 2
+ 55+  9D22 05 04 03 02
+ 56+  9D26 09 07 07 06          DEFB 9, 7, 7, 6, 5, 4, 3, 2, 1
+ 56+  9D2A 05 04 03 02
+ 56+  9D2E 01
+ 57+  9D2F 0A 08 07 06          DEFB 10, 8, 7, 6, 5, 4, 3, 2, 1, 7
+ 57+  9D33 05 04 03 02
+ 57+  9D37 01 07
+ 58+  9D39 0B 09 07 06          DEFB 11, 9, 7, 6, 5, 4, 3, 2, 1, 7, 6
+ 58+  9D3D 05 04 03 02
+ 58+  9D41 01 07 06
+ 59+  9D44 0C 0A 07 06          DEFB 12, 10, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5
+ 59+  9D48 05 04 03 02
+ 59+  9D4C 01 07 06 05
+ 60+  9D50 0D 0B 07 06          DEFB 13, 11, 7, 6, 5, 4, 3, 2, 1, 7, 6, 5, 4
+ 60+  9D54 05 04 03 02
+ 60+  9D58 01 07 06 05
+ 60+  9D5C 04
+ 61+  9D5D 0E 0C 07 07          DEFB 14, 12, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
+ 61+  9D61 07 07 07 07
  61+  9D65 07 07 07 07
- 61+  9D69 07 07 07 07
- 61+  9D6D 07 07
- 62+  9D6F FF                   DEFB 255
- 63+  9D70
- 64+  9D70              ; ---> UFV LOGO ROUND 3
- 65+  9D70 99           map3:   DEFB 153
- 66+  9D71 03 0E 00 01          DEFB 3, 14, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1
- 66+  9D75 01 01 01 01
- 66+  9D79 01 00 01 01
- 66+  9D7D 01 01 01 01
- 67+  9D81 04 0E 00 01          DEFB 4, 14, 0, 1, 7, 7, 7, 7, 1, 0, 1, 7, 7, 7, 7, 1
- 67+  9D85 07 07 07 07
- 67+  9D89 01 00 01 07
- 67+  9D8D 07 07 07 01
- 68+  9D91 05 0E 00 01          DEFB 5, 14, 0, 1, 7, 7, 7, 7, 1, 0, 1, 7, 7, 7, 7, 1
- 68+  9D95 07 07 07 07
- 68+  9D99 01 00 01 07
- 68+  9D9D 07 07 07 01
- 69+  9DA1 06 0E 00 01          DEFB 6, 14, 0, 1, 1, 7, 7, 1, 1, 0, 1, 1, 7, 7, 1, 1
- 69+  9DA5 01 07 07 01
- 69+  9DA9 01 00 01 01
- 69+  9DAD 07 07 01 01
- 70+  9DB1 07 0D 00 00          DEFB 7, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 70+  9DB5 01 07 07 01
- 70+  9DB9 00 00 00 01
- 70+  9DBD 07 07 01
- 71+  9DC0 08 0D 00 00          DEFB 8, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 71+  9DC4 01 07 07 01
- 71+  9DC8 00 00 00 01
- 71+  9DCC 07 07 01
- 72+  9DCF 09 0D 00 00          DEFB 9, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 72+  9DD3 01 07 07 01
- 72+  9DD7 00 00 00 01
- 72+  9DDB 07 07 01
- 73+  9DDE 0A 0D 00 00          DEFB 10, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 73+  9DE2 01 07 07 01
- 73+  9DE6 00 00 00 01
- 73+  9DEA 07 07 01
- 74+  9DED 0B 0D 00 00          DEFB 11, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 74+  9DF1 01 07 07 01
- 74+  9DF5 00 00 00 01
- 74+  9DF9 07 07 01
- 75+  9DFC 0C 0D 00 00          DEFB 12, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 75+  9E00 01 07 07 01
- 75+  9E04 00 00 00 01
- 75+  9E08 07 07 01
- 76+  9E0B 0D 0D 00 00          DEFB 13, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
- 76+  9E0F 01 07 07 01
- 76+  9E13 00 00 00 01
- 76+  9E17 07 07 01
- 77+  9E1A 0E 0D 00 00          DEFB 14, 13, 0, 0, 1, 7, 7, 1, 1, 1, 1, 1, 7, 7, 1
- 77+  9E1E 01 07 07 01
- 77+  9E22 01 01 01 01
- 77+  9E26 07 07 01
- 78+  9E29 0F 0D 00 00          DEFB 15, 13, 0, 0, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1
- 78+  9E2D 01 07 07 07
- 78+  9E31 07 07 07 07
- 78+  9E35 07 07 01
- 79+  9E38 10 0D 00 00          DEFB 16, 13, 0, 0, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1
- 79+  9E3C 01 07 07 07
- 79+  9E40 07 07 07 07
- 79+  9E44 07 07 01
- 80+  9E47 11 0C 00 00          DEFB 17, 12, 0, 0, 0, 1, 7, 7, 7, 7, 7, 7, 7, 1
- 80+  9E4B 00 01 07 07
- 80+  9E4F 07 07 07 07
- 80+  9E53 07 01
- 81+  9E55 12 0B 00 00          DEFB 18, 11, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1
- 81+  9E59 00 00 01 01
- 81+  9E5D 01 01 01 01
- 81+  9E61 01
- 82+  9E62 FF                   DEFB 255
- 83+  9E63
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Mapas.asm
- 40   9E63                      INCLUDE "Partida.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
-  1+  9E63 00           levelCounter: DEFB 0     ; Para contar los niveles que van pasando
-  2+  9E64              CantidadNiveles: EQU 4
-  3+  9E64
-  4+  9E64              Juego:
-  5+  9E64 CD 70 9B         call dibujar_tablero
-  6+  9E67 CD 9D 9B         call Mostrar_Mapa
-  7+  9E6A
-  8+  9E6A              Pala_Juego:
-  9+  9E6A CD D8 9A         call posicionpala
- 10+  9E6D
- 11+  9E6D
- 12+  9E6D              Fin_Juego:
- 13+  9E6D 11 01 00         ld de, 1
- 14+  9E70 DD 19            add ix, de           ; Sumamos a IX (maplist) para pasar al siguiente mapa
- 15+  9E72
- 16+  9E72                  ; Incrementar levelCounter
- 17+  9E72 21 63 9E         ld hl, levelCounter
- 18+  9E75 34               inc (hl)
- 19+  9E76 7E               ld a, (hl)           ; Cargar el valor incrementado a levelCounter
- 20+  9E77 FE 04            cp CantidadNiveles     ; Comparar con el numero maximo de niveles (4)
- 21+  9E79 28 02            jr z, ReinicioJuego  ; Si alcanzamos el maximo, ir a ReinicioJuego
- 22+  9E7B
- 23+  9E7B 18 E7            jr Juego             ; Continuar con el juego
- 24+  9E7D
- 25+  9E7D              ReinicioJuego:
- 26+  9E7D 21 63 9E         ld hl, levelCounter
- 27+  9E80 36 00            ld (hl), 0           ; Restablecer el contador a 0
- 28+  9E82
- 29+  9E82 CD 05 9A         call Pantalla_Reinicio
- 30+  9E85
- 31+  9E85
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\main.asm
+ 61+  9D69 07 07
+ 62+  9D6B FF                   DEFB 255
+ 63+  9D6C
+ 64+  9D6C              ; ---> UFV LOGO ROUND 3
+ 65+  9D6C 99           map3:   DEFB 153
+ 66+  9D6D 03 0E 00 01          DEFB 3, 14, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1
+ 66+  9D71 01 01 01 01
+ 66+  9D75 01 00 01 01
+ 66+  9D79 01 01 01 01
+ 67+  9D7D 04 0E 00 01          DEFB 4, 14, 0, 1, 7, 7, 7, 7, 1, 0, 1, 7, 7, 7, 7, 1
+ 67+  9D81 07 07 07 07
+ 67+  9D85 01 00 01 07
+ 67+  9D89 07 07 07 01
+ 68+  9D8D 05 0E 00 01          DEFB 5, 14, 0, 1, 7, 7, 7, 7, 1, 0, 1, 7, 7, 7, 7, 1
+ 68+  9D91 07 07 07 07
+ 68+  9D95 01 00 01 07
+ 68+  9D99 07 07 07 01
+ 69+  9D9D 06 0E 00 01          DEFB 6, 14, 0, 1, 1, 7, 7, 1, 1, 0, 1, 1, 7, 7, 1, 1
+ 69+  9DA1 01 07 07 01
+ 69+  9DA5 01 00 01 01
+ 69+  9DA9 07 07 01 01
+ 70+  9DAD 07 0D 00 00          DEFB 7, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 70+  9DB1 01 07 07 01
+ 70+  9DB5 00 00 00 01
+ 70+  9DB9 07 07 01
+ 71+  9DBC 08 0D 00 00          DEFB 8, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 71+  9DC0 01 07 07 01
+ 71+  9DC4 00 00 00 01
+ 71+  9DC8 07 07 01
+ 72+  9DCB 09 0D 00 00          DEFB 9, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 72+  9DCF 01 07 07 01
+ 72+  9DD3 00 00 00 01
+ 72+  9DD7 07 07 01
+ 73+  9DDA 0A 0D 00 00          DEFB 10, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 73+  9DDE 01 07 07 01
+ 73+  9DE2 00 00 00 01
+ 73+  9DE6 07 07 01
+ 74+  9DE9 0B 0D 00 00          DEFB 11, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 74+  9DED 01 07 07 01
+ 74+  9DF1 00 00 00 01
+ 74+  9DF5 07 07 01
+ 75+  9DF8 0C 0D 00 00          DEFB 12, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 75+  9DFC 01 07 07 01
+ 75+  9E00 00 00 00 01
+ 75+  9E04 07 07 01
+ 76+  9E07 0D 0D 00 00          DEFB 13, 13, 0, 0, 1, 7, 7, 1, 0, 0, 0, 1, 7, 7, 1
+ 76+  9E0B 01 07 07 01
+ 76+  9E0F 00 00 00 01
+ 76+  9E13 07 07 01
+ 77+  9E16 0E 0D 00 00          DEFB 14, 13, 0, 0, 1, 7, 7, 1, 1, 1, 1, 1, 7, 7, 1
+ 77+  9E1A 01 07 07 01
+ 77+  9E1E 01 01 01 01
+ 77+  9E22 07 07 01
+ 78+  9E25 0F 0D 00 00          DEFB 15, 13, 0, 0, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1
+ 78+  9E29 01 07 07 07
+ 78+  9E2D 07 07 07 07
+ 78+  9E31 07 07 01
+ 79+  9E34 10 0D 00 00          DEFB 16, 13, 0, 0, 1, 7, 7, 7, 7, 7, 7, 7, 7, 7, 1
+ 79+  9E38 01 07 07 07
+ 79+  9E3C 07 07 07 07
+ 79+  9E40 07 07 01
+ 80+  9E43 11 0C 00 00          DEFB 17, 12, 0, 0, 0, 1, 7, 7, 7, 7, 7, 7, 7, 1
+ 80+  9E47 00 01 07 07
+ 80+  9E4B 07 07 07 07
+ 80+  9E4F 07 01
+ 81+  9E51 12 0B 00 00          DEFB 18, 11, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1
+ 81+  9E55 00 00 01 01
+ 81+  9E59 01 01 01 01
+ 81+  9E5D 01
+ 82+  9E5E FF                   DEFB 255
+ 83+  9E5F
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Mapas.asm
+ 40   9E5F                      INCLUDE "Partida.asm"
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm
+  1+  9E5F 00           levelCounter: DEFB 0     ; Para contar los niveles que van pasando
+  2+  9E60              CantidadNiveles: EQU 4
+  3+  9E60
+  4+  9E60              Juego:
+  5+  9E60 CD 6C 9B         call dibujar_tablero
+  6+  9E63 CD 99 9B         call Mostrar_Mapa
+  7+  9E66
+  8+  9E66              Pala_Juego:
+  9+  9E66 CD 88 9E         call ball
+ 10+  9E69                  ;mirar si fin partida
+ 11+  9E69                  ;call teclado
+ 12+  9E69                  ;call nuevaposicionpala
+ 13+  9E69                  ;call dibujapala
+ 14+  9E69                  ;call esperar
+ 15+  9E69                  ;jr Pala_juego
+ 16+  9E69 CD D8 9A         call posicionpala
+ 17+  9E6C
+ 18+  9E6C
+ 19+  9E6C              Fin_Juego:
+ 20+  9E6C 11 01 00         ld de, 1
+ 21+  9E6F DD 19            add ix, de           ; Sumamos a IX (maplist) para pasar al siguiente mapa
+ 22+  9E71
+ 23+  9E71                  ; Incrementar levelCounter
+ 24+  9E71 21 5F 9E         ld hl, levelCounter
+ 25+  9E74 34               inc (hl)
+ 26+  9E75 7E               ld a, (hl)           ; Cargar el valor incrementado a levelCounter
+ 27+  9E76 FE 04            cp CantidadNiveles     ; Comparar con el numero maximo de niveles (4)
+ 28+  9E78 28 02            jr z, ReinicioJuego  ; Si alcanzamos el maximo, ir a ReinicioJuego
+ 29+  9E7A
+ 30+  9E7A 18 E4            jr Juego             ; Continuar con el juego
+ 31+  9E7C
+ 32+  9E7C              ReinicioJuego:
+ 33+  9E7C 21 5F 9E         ld hl, levelCounter
+ 34+  9E7F 36 00            ld (hl), 0           ; Restablecer el contador a 0
+ 35+  9E81
+ 36+  9E81 CD 05 9A         call Pantalla_Reinicio
+ 37+  9E84
+ 38+  9E84
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm
+ 41   9E84                      INCLUDE "pelota.asm"
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pelota.asm
+  1+  9E84 10 14        Coord:  DB 16, 20
+  2+  9E86 FF 01        Vector: DB -1, 1
+  3+  9E88
+  4+  9E88              ball:
+  5+  9E88 2A 84 9E             ld hl, (Coord)
+  6+  9E8B CD F0 9E             call PosXY
+  7+  9E8E 36 38                ld (hl), 8*7
+  8+  9E90 CD E3 9E             call Esperar_pelota
+  9+  9E93 36 00                ld (hl), 0
+ 10+  9E95 2A 84 9E             ld hl, (Coord)
+ 11+  9E98 3A 86 9E             ld a, (Vector)
+ 12+  9E9B 84                   add h           ; A = A + H
+ 13+  9E9C
+ 14+  9E9C FE 18                cp 24           ; A == 24?
+ 15+  9E9E 20 0C                jr nz, seguir1
+ 16+  9EA0 3A 86 9E             ld a, (Vector)
+ 17+  9EA3 ED 44                neg
+ 18+  9EA5 32 86 9E             ld (Vector), a
+ 19+  9EA8 3E 16                ld a, 22
+ 20+  9EAA 18 0E                jr seguir2
+ 21+  9EAC
+ 22+  9EAC              seguir1:
+ 23+  9EAC FE FF                cp -1
+ 24+  9EAE 20 0A                jr nz, seguir2
+ 25+  9EB0 3A 86 9E             ld a, (Vector)
+ 26+  9EB3 ED 44                neg
+ 27+  9EB5 32 86 9E             ld (Vector), a
+ 28+  9EB8 3E 01                ld a, 1
+ 29+  9EBA
+ 30+  9EBA              seguir2:
+ 31+  9EBA
+ 32+  9EBA 67                   ld h, a
+ 33+  9EBB 3A 87 9E             ld a, (Vector + 1)
+ 34+  9EBE 85                   add l
+ 35+  9EBF
+ 36+  9EBF FE 20                cp 32
+ 37+  9EC1 20 0C                jr nz, seguir3
+ 38+  9EC3 3A 87 9E             ld a, (Vector + 1)
+ 39+  9EC6 ED 44                neg
+ 40+  9EC8 32 87 9E             ld (Vector + 1), a
+ 41+  9ECB 3E 1E                ld a, 30
+ 42+  9ECD 18 0E                jr seguir4
+ 43+  9ECF
+ 44+  9ECF              seguir3:
+ 45+  9ECF FE FF                cp -1
+ 46+  9ED1 20 0A                jr nz, seguir4
+ 47+  9ED3 3A 87 9E             ld a, (Vector + 1)  ; Rebotar con el limite superior
+ 48+  9ED6 ED 44                neg
+ 49+  9ED8 32 87 9E             ld (Vector + 1), a
+ 50+  9EDB 3E 01                ld a, 1
+ 51+  9EDD
+ 52+  9EDD              seguir4:
+ 53+  9EDD
+ 54+  9EDD 6F                   ld l, a
+ 55+  9EDE 22 84 9E             ld (Coord), hl
+ 56+  9EE1 18 A5                jr ball
+ 57+  9EE3
+ 58+  9EE3
+ 59+  9EE3
+ 60+  9EE3              ;-------------------------------------------------------------------------------------------------
+ 61+  9EE3
+ 62+  9EE3              Esperar_pelota:
+ 63+  9EE3 E5                   push hl
+ 64+  9EE4 F5                   push af
+ 65+  9EE5 21 00 1F             ld hl, $1f00
+ 66+  9EE8
+ 67+  9EE8              Bucle_esperar:
+ 68+  9EE8 2B                   dec hl
+ 69+  9EE9 7C                   ld a, h
+ 70+  9EEA B5                   or l
+ 71+  9EEB 20 FB                jr nz, Bucle_esperar
+ 72+  9EED F1                   pop af
+ 73+  9EEE E1                   pop hl
+ 74+  9EEF C9                   ret
+ 75+  9EF0
+ 76+  9EF0              PosXY:
+ 77+  9EF0 F5                   push af
+ 78+  9EF1 7C                   ld a, h
+ 79+  9EF2 CB 27                sla a
+ 80+  9EF4 CB 27                sla a
+ 81+  9EF6 CB 27                sla a
+ 82+  9EF8 CB 27                sla a
+ 83+  9EFA CB 27                sla a
+ 84+  9EFC B5                   or l            ; A = A : L
+ 85+  9EFD 6F                   ld l, a
+ 86+  9EFE 7C                   ld a, h
+ 87+  9EFF CB 2F                sra a
+ 88+  9F01 CB 2F                sra a
+ 89+  9F03 CB 2F                sra a
+ 90+  9F05 F6 58                or $58          ; A = A : $58
+ 91+  9F07 67                   ld h, a
+ 92+  9F08 F1                   pop af
+ 93+  9F09 C9                   ret
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\pelota.asm
+ 42   9F0A                      INCLUDE "colisiones.asm"
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\colisiones.asm
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\colisiones.asm
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\main.asm

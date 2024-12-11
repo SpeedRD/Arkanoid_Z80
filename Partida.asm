@@ -6,6 +6,13 @@ Juego:
     call Mostrar_Mapa
 
 Pala_Juego:
+    ;call ball
+    ;mirar si fin partida
+    ;call teclado
+    ;call nuevaposicionpala
+    ;call dibujapala
+    ;call esperar
+    ;jr Pala_juego
     call posicionpala
     
 

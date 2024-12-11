@@ -38,3 +38,5 @@ flujo_juego:
         INCLUDE "PintarMapa.asm"
         INCLUDE "Mapas.asm"
         INCLUDE "Partida.asm"
+        INCLUDE "pelota.asm"
+        INCLUDE "colisiones.asm"

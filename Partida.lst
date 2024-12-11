@@ -1,29 +1,37 @@
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
- 1    0000              Juego:
-D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(2): error: Label not found: dibujar_tablero
- 2    0000 CD 00 00         call dibujar_tablero
-D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(3): error: Label not found: Mostrar_Mapa
- 3    0003 CD 00 00         call Mostrar_Mapa
- 4    0006
- 5    0006              Pala_Juego:
-D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(6): error: Label not found: posicionpala
- 6    0006 CD 00 00         call posicionpala
- 7    0009
- 8    0009
- 9    0009              Fin_Juego:
-10    0009 11 02 00         ld de, 2
-11    000C DD 19            add ix, de
-12    000E
-13    000E
-14    000E
-15    000E DD 7E 00         ld a, (ix)
-16    0011
-17    0011
-18    0011
-19    0011 18 ED            jr Juego
-20    0013
-21    0013              ReinicioJuego:
-D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm(22): error: Label not found: Pantalla_Reinicio
-22    0013 CD 00 00         call Pantalla_Reinicio
-23    0016
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
+# file opened: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm
+ 1    0000 00           levelCounter: DEFB 0     ; Para contar los niveles que van pasando
+ 2    0001              CantidadNiveles: EQU 4
+ 3    0001
+ 4    0001              Juego:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm(5): error: Label not found: dibujar_tablero
+ 5    0001 CD 00 00         call dibujar_tablero
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm(6): error: Label not found: Mostrar_Mapa
+ 6    0004 CD 00 00         call Mostrar_Mapa
+ 7    0007
+ 8    0007              Pala_Juego:
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm(9): error: Label not found: posicionpala
+ 9    0007 CD 00 00         call posicionpala
+10    000A
+11    000A
+12    000A              Fin_Juego:
+13    000A 11 01 00         ld de, 1
+14    000D DD 19            add ix, de           ; Sumamos a IX (maplist) para pasar al siguiente mapa
+15    000F
+16    000F                  ; Incrementar levelCounter
+17    000F 21 00 00         ld hl, levelCounter
+18    0012 34               inc (hl)
+19    0013 7E               ld a, (hl)           ; Cargar el valor incrementado a levelCounter
+20    0014 FE 04            cp CantidadNiveles     ; Comparar con el numero maximo de niveles (4)
+21    0016 28 02            jr z, ReinicioJuego  ; Si alcanzamos el maximo, ir a ReinicioJuego
+22    0018
+23    0018 18 E7            jr Juego             ; Continuar con el juego
+24    001A
+25    001A              ReinicioJuego:
+26    001A 21 00 00         ld hl, levelCounter
+27    001D 36 00            ld (hl), 0           ; Restablecer el contador a 0
+28    001F
+C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm(29): error: Label not found: Pantalla_Reinicio
+29    001F CD 00 00         call Pantalla_Reinicio
+30    0022
+31    0022
+# file closed: C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\Partida.asm
