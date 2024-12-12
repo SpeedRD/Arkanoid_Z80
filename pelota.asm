@@ -1,5 +1,6 @@
-Coord:  DB 16, 20
-Vector: DB -1, 1
+Coord:  DB 16, 20       ; Coordenadas iniciales de la pelota (fila, columna)
+Vector: DB -1, 1        ; Vector de movimiento inicial (X, Y)
+
 
 ball:
         ld hl, (Coord)
@@ -53,7 +54,7 @@ seguir4:
 
         ld l, a
         ld (Coord), hl
-        jr ball
+        ret
         
         
 
@@ -62,7 +63,7 @@ seguir4:
 Esperar_pelota:
         push hl
         push af
-        ld hl, $1f00
+        ld hl, $1100      ; Ajustar el tiempo de espera 
 
 Bucle_esperar:
         dec hl

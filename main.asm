@@ -20,7 +20,7 @@ empezar:
         CALL Pantalla_Ini
 
 flujo_juego:
-
+        
         ld ix, (maplist)
         
         CALL Juego

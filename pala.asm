@@ -1,7 +1,7 @@
 POSICION: DB 14,0
-LONGITUDPALA EQU 4
+LONGITUDPALA EQU 7
 COLORPALA EQU 2*8
-CONTADOR EQU $01FF
+CONTADOR EQU $03FF
 
 dibujarpala:
         ld a,(POSICION+1)
@@ -42,14 +42,19 @@ teclado1:
         ld b,0
         ret
 teclado2:
-        bit 0,a ;z=!A0
+        bit 3, a ; Detectar tecla "F"
         jr nz,teclado3
-        ld b,-1
-        jr tecladofin
+        call Fin_Juego ; Llamar a Fin_Juego si se pulsa "F"
+        ret
 teclado3:
-        bit 2,a
+        bit 0, a ; Detectar tecla "A"
+        jr nz,teclado4
+        ld b, -1
+        jr tecladofin
+teclado4:
+        bit 2, a ; Detectar tecla "D"
         jr nz,teclado1
-        ld b,1
+        ld b, 1
 tecladofin:
         nop     ;instruccion que pierde ciclos
         nop
@@ -57,7 +62,7 @@ tecladofin:
         nop
         nop
         dec d
-        jr nz,tecladofin
+        jr nz,tecladofin 
         ret
 ;--------------------------------------------------------------------------------------------------------------------------
 nuevaposicion:
@@ -85,4 +90,3 @@ esperar1:
         jr nz,esperar1
         ret
 ;-------------------------------------------------------------------------------------------------
-fin:            jr fin          ; Bucle infinito
