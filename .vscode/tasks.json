@@ -1,21 +1,20 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-                {
-            "label": "sjasmplus",
-            "type": "shell",
-            "command": "D:/UFV/Arquitectura/sjasmplus118.exe", 
-            "args": [
-                "--lst=${fileDirname}/${fileBasenameNoExtension}.lst",
-                "--sld=${fileDirname}/${fileBasenameNoExtension}.sld",
-                "--raw=${fileDirname}/${fileBasenameNoExtension}.bin",
-                "--fullpath",
-                "${file}"
-            ],
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "sjasmplus: build main",
+      "type": "shell",
+      "command": "sjasmplus",
+      "args": [
+        "--fullpath",
+        "--lst=main.lst",
+        "--sld=main.sld",
+        "--raw=main.bin",
+        "main.asm"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    }
+  ]
 }
