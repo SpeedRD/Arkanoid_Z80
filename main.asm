@@ -1,10 +1,3 @@
-; Integrantes y porcentajes
-; Alba Garcia Rivas -> 31%
-; Eduardo Jose Cabreja Perez -> 38%
-; Francisco Javier Zaballa Gutierrez -> 31%
-; Jaime Fernandez Alonso -> 0%
-
-        
         DEVICE ZXSPECTRUM48
 	SLDOPT COMMENT WPMEM, LOGPOINT, ASSETION
         org $8000               ; Programa ubicado a partir de $8000 = 32768
