@@ -1,38 +1,31 @@
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\main.asm
-  1   0000              ; Integrantes y porcentajes
-  2   0000              ; Alba Garcia Rivas -> 31%
-  3   0000              ; Eduardo Jose Cabreja Perez -> 38%
-  4   0000              ; Francisco Javier Zaballa Gutierrez -> 31%
-  5   0000              ; Jaime Fernandez Alonso -> 0%
-  6   0000
-  7   0000
-  8   0000                      DEVICE ZXSPECTRUM48
-  9   0000              	SLDOPT COMMENT WPMEM, LOGPOINT, ASSETION
- 10   0000                      org $8000               ; Programa ubicado a partir de $8000 = 32768
- 11   8000
- 12   8000 F3                   di              ; Deshabilitar interrupciones
- 13   8001 31 00 00             ld sp,0         ; Establecer el puntero de pila en la parte alta de la memoria
- 14   8004
- 15   8004              ;-------------------------------------------------------------------------------------------------
- 16   8004              ;Código del estudiante
- 17   8004
- 18   8004 CD 13 80             CALL Main_Pantalla    ;Pantalla de Titulo
- 19   8007              empezar:
- 20   8007 CD EA 99             CALL Pantalla_Ini
- 21   800A
- 22   800A              flujo_juego:
- 23   800A
- 24   800A DD 2A AC 9B          ld ix, (maplist)
- 25   800E
- 26   800E CD 3F 9E             CALL Juego
- 27   8011
- 28   8011
- 29   8011 18 F7                jr flujo_juego
- 30   8013
- 31   8013
- 32   8013
- 33   8013                      INCLUDE "Pantalla_Inicio.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Pantalla_Inicio.asm
+# file opened: main.asm
+  1   0000                      DEVICE ZXSPECTRUM48
+  2   0000              	SLDOPT COMMENT WPMEM, LOGPOINT, ASSETION
+  3   0000                      org $8000               ; Programa ubicado a partir de $8000 = 32768
+  4   8000
+  5   8000 F3                   di              ; Deshabilitar interrupciones
+  6   8001 31 00 00             ld sp,0         ; Establecer el puntero de pila en la parte alta de la memoria
+  7   8004
+  8   8004              ;-------------------------------------------------------------------------------------------------
+  9   8004              ;Código del estudiante
+ 10   8004
+ 11   8004 CD 13 80             CALL Main_Pantalla    ;Pantalla de Titulo
+ 12   8007              empezar:
+ 13   8007 CD EA 99             CALL Pantalla_Ini
+ 14   800A
+ 15   800A              flujo_juego:
+ 16   800A
+ 17   800A DD 2A AC 9B          ld ix, (maplist)
+ 18   800E
+ 19   800E CD 3F 9E             CALL Juego
+ 20   8011
+ 21   8011
+ 22   8011 18 F7                jr flujo_juego
+ 23   8013
+ 24   8013
+ 25   8013
+ 26   8013                      INCLUDE "Pantalla_Inicio.asm"
+# file opened: Pantalla_Inicio.asm
   1+  8013              Main_Pantalla:
   2+  8013 DD 21 3B 80      LD IX, RLEData
   3+  8017 21 00 40         LD HL, $4000
@@ -1618,9 +1611,9 @@
 292+  9666
 293+  9666
 294+  9666
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Pantalla_Inicio.asm
- 34   9666                      INCLUDE "L30.3 - printat.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\L30.3 - printat.asm
+# file closed: Pantalla_Inicio.asm
+ 27   9666                      INCLUDE "L30.3 - printat.asm"
+# file opened: L30.3 - printat.asm
   1+  9666              ; -------------------------------
   2+  9666              ; ZX Spectrum Text print library
   3+  9666              ; Daniel León - AOC - UFV 2020
@@ -1785,9 +1778,9 @@
 161+  96EA
 162+  96EA              CHARSET: incbin "charset.bin"			; Charset used
 163+  99EA
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\L30.3 - printat.asm
- 35   99EA                      INCLUDE "mensaje_inicio.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\mensaje_inicio.asm
+# file closed: L30.3 - printat.asm
+ 28   99EA                      INCLUDE "mensaje_inicio.asm"
+# file opened: mensaje_inicio.asm
   1+  99EA              Pantalla_Ini:
   2+  99EA 3E 06            ld a, 6     ; Letra verde
   3+  99EC 06 17            ld b, 23    ; Coordenadas para el mensaje de inicio, Fila
@@ -1907,9 +1900,9 @@
  94+  9AC9 72 61 20 70
  94+  9ACD 61 72 74 69
  94+  9AD1 64 61 3F 00
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\mensaje_inicio.asm
- 36   9AD5                      INCLUDE "pala.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\pala.asm
+# file closed: mensaje_inicio.asm
+ 29   9AD5                      INCLUDE "pala.asm"
+# file opened: pala.asm
   1+  9AD5 0E 00        POSICION: DB 14,0
   2+  9AD7              LONGITUDPALA EQU 7
   3+  9AD7              COLORPALA EQU 2*8
@@ -2003,9 +1996,9 @@
  91+  9B4A C9                   ret
  92+  9B4B              ;-------------------------------------------------------------------------------------------------
  93+  9B4B
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\pala.asm
- 37   9B4B                      INCLUDE "tablero.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\tablero.asm
+# file closed: pala.asm
+ 30   9B4B                      INCLUDE "tablero.asm"
+# file opened: tablero.asm
   1+  9B4B              dibujar_tablero:
   2+  9B4B CD D7 96         call CLEARSCR   ; Limpiar toda la pantalla
   3+  9B4E
@@ -2044,9 +2037,9 @@
  36+  9B75 C9               ret
  37+  9B76
  38+  9B76 18 FE        fin_dibujar_tablero: jr fin_dibujar_tablero
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\tablero.asm
- 38   9B78                      INCLUDE "PintarMapa.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm
+# file closed: tablero.asm
+ 31   9B78                      INCLUDE "PintarMapa.asm"
+# file opened: PintarMapa.asm
   1+  9B78              Mostrar_Mapa:
   2+  9B78 DD 7E 00         LD A, (IX)
   3+  9B7B DD 23            INC IX
@@ -2098,9 +2091,9 @@
  49+  9BAC
  50+  9BAC
  51+  9BAC
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\PintarMapa.asm
- 39   9BAC                      INCLUDE "Mapas.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Mapas.asm
+# file closed: PintarMapa.asm
+ 32   9BAC                      INCLUDE "Mapas.asm"
+# file opened: Mapas.asm
   1+  9BAC              ;--------------------------------------------------------------------------------------
   2+  9BAC              ; Arkanoid generated levels from text file
   3+  9BAC              ; Converter in Python by Daniel Leon (UFV) for AOC 2024/2025
@@ -2314,9 +2307,9 @@
  81+  9E3C 01
  82+  9E3D FF                   DEFB 255
  83+  9E3E
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Mapas.asm
- 40   9E3E                      INCLUDE "Partida.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
+# file closed: Mapas.asm
+ 33   9E3E                      INCLUDE "Partida.asm"
+# file opened: Partida.asm
   1+  9E3E 00           levelCounter: DEFB 0     ; Para contar los niveles que van pasando
   2+  9E3F              CantidadNiveles: EQU 4
   3+  9E3F
@@ -2355,9 +2348,9 @@
  36+  9E6B CD 05 9A         call Pantalla_Reinicio
  37+  9E6E
  38+  9E6E
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\Partida.asm
- 41   9E6E                      INCLUDE "pelota.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\pelota.asm
+# file closed: Partida.asm
+ 34   9E6E                      INCLUDE "pelota.asm"
+# file opened: pelota.asm
   1+  9E6E 10 14        Coord:  DB 16, 20       ; Coordenadas iniciales de la pelota (fila, columna)
   2+  9E70 FF 01        Vector: DB -1, 1        ; Vector de movimiento inicial (X, Y)
   3+  9E72
@@ -2452,8 +2445,8 @@
  92+  9EF0 67                   ld h, a
  93+  9EF1 F1                   pop af
  94+  9EF2 C9                   ret
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\pelota.asm
- 42   9EF3                      INCLUDE "colisiones.asm"
-# file opened: D:\UFV\Arquitectura\Arkanoid_Z80\colisiones.asm
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\colisiones.asm
-# file closed: D:\UFV\Arquitectura\Arkanoid_Z80\main.asm
+# file closed: pelota.asm
+ 35   9EF3                      INCLUDE "colisiones.asm"
+# file opened: colisiones.asm
+# file closed: colisiones.asm
+# file closed: main.asm
