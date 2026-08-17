@@ -1,0 +1,16 @@
+# Build artifacts. Only main.bin / main.lst / main.sld are ever valid output;
+# the per-file ones that used to be committed were broken standalone builds of
+# INCLUDE fragments and were actively dangerous to load.
+*.bin
+*.lst
+*.sld
+
+# ...except charset.bin, which is a SOURCE asset, not build output: it is
+# incbin'd by "L30.3 - printat.asm" and the build fails without it.
+!charset.bin
+
+# DeZog scratch output.
+.tmp/
+
+.DS_Store
+__pycache__/
