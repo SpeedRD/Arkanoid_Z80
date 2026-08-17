@@ -37,23 +37,29 @@ teclado1:
         and $1F
         cp $1F  ;si no vale 1F es que algo han pulsado
         jr nz,teclado2
+teclado_sigue:
         dec d
         jr nz,teclado1
         ld b,0
         ret
+; La tecla "F" pasaba de nivel. Era un hook de depuracion de noviembre de 2024 que
+; acabo siendo el unico modo de avanzar, y metia una llamada de logica de juego en
+; el manejador de teclado: teclado hacia call Fin_Juego y Fin_Juego sale con jr Juego,
+; abandonando dos direcciones de retorno en la pila en cada cambio de nivel. Ahora el
+; nivel avanza solo, desde Partida.asm, cuando bricks_left llega a 0.
 teclado2:
-        bit 3, a ; Detectar tecla "F"
-        jr nz,teclado3
-        call Fin_Juego ; Llamar a Fin_Juego si se pulsa "F"
-        ret
-teclado3:
         bit 0, a ; Detectar tecla "A"
-        jr nz,teclado4
+        jr nz,teclado3
         ld b, -1
         jr tecladofin
-teclado4:
+teclado3:
         bit 2, a ; Detectar tecla "D"
-        jr nz,teclado1
+        ; Una tecla de esta media fila que no sea A ni D (o sea S, F o G) volvia aqui a
+        ; teclado1 SIN decrementar D, asi que el bucle no terminaba nunca: mantener
+        ; pulsada la S congelaba el juego entero -- bola y pala -- hasta soltarla. Y la S
+        ; esta justo al lado de la A y la D. Ahora sigue contando como cualquier sondeo
+        ; fallido, de modo que el bucle acaba y devuelve b=0.
+        jr nz,teclado_sigue
         ld b, 1
 tecladofin:
         nop     ;instruccion que pierde ciclos

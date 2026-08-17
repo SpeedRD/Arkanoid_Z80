@@ -1,5 +1,9 @@
-Mostrar_Mapa:   
+Mostrar_Mapa:
     LD A, (IX)
+    ld (bricks_left), a   ; Byte 0 del mapa = numero de ladrillos destructibles.
+                          ; Antes se leia aqui y se tiraba en la linea siguiente; es
+                          ; exactamente el contador que necesita la deteccion de nivel
+                          ; completado, asi que se guarda.
     INC IX
 
 Fila:

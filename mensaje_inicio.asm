@@ -36,7 +36,35 @@ Pantalla_Reinicio:
     ld (hl),a                ; Establecer el atributo
 
     call EsperarTecla
-    call flujo_juego
+    jp flujo_juego           ; jp, no call: flujo_juego no vuelve nunca
+
+; ----------------------------------------------------------------------------------------
+; Pantalla_GameOver - derrota, al quedarse sin vidas. Distinta de Pantalla_Reinicio, que
+; es la de partida completada.
+; ----------------------------------------------------------------------------------------
+Pantalla_GameOver:
+    call CLEARSCR
+
+    ld a, 2                  ; Letra roja
+    ld b, 8                  ; Coordenadas fila
+    ld c, 11                 ; Coordenadas columna
+    ld ix, MensajeGameOver
+    call PRINTAT
+
+    ld a, 6
+    ld b, 14
+    ld c, 2
+    ld ix, MensajeReiniciar
+    call PRINTAT
+
+    ld b, 14                 ; Fila
+    ld c, 30                 ; Columna
+    call CalcularAtributo
+    ld a,6+$80               ; Amarillo parpadeante
+    ld (hl),a
+
+    call EsperarTecla
+    jp flujo_juego
 
 FinDelJuego:
     call CLEARSCR
@@ -44,10 +72,16 @@ FinDelJuego:
     ld a,2+$80               ; Letra roja
     ld b, 11                 ; Coordenadas Fila
     ld c, 11                 ; Coordenadas Columna
-    ld ix,MensajeFinal   
-    call PRINTAT  
+    ld ix,MensajeFinal
+    call PRINTAT
 
-
+    ; Aqui se caia directamente dentro de CalcularAtributo, cuyo RET consumia la
+    ; direccion de retorno que habia dejado EsperarTecla, devolviendo el control al
+    ; bucle de espera de tecla: pulsar "N" mostraba el adios y seguia jugando. El
+    ; programa no tenia ningun estado de parada, asi que este es el unico sitio donde
+    ; termina de verdad.
+FinDelJuego_Parada:
+    jr FinDelJuego_Parada
 
 CalcularAtributo:
                         ; Rutina que recibe en B,C las coordenadas de la pantalla (fila, columna)
@@ -66,7 +100,7 @@ CalcularAtributo:
 
 EsperarTecla:
     call LeerTecla
-    cp $FF
+    cp $1F              ; solo cuentan los 5 bits de teclas (ver SoltarTecla)
     jr nz,EsperarTecla  ; Esperar hasta que no haya tecla pulsada
     ret
 
@@ -83,11 +117,17 @@ LeerTecla:
 
 SoltarTecla:
     in a,(c)            ; Leer del puerto que se ha definido en LeerTecla
-    cp $FF              ; Comprobar que no hay tecla pulsada
+    ; Solo los bits 0-4 son teclas. Los bits 5-7 no son de teclado (bit 6 es
+    ; EAR) y no se leen como 1 de forma fiable, asi que comparar el byte
+    ; entero con $FF cuelga el menu para siempre. Enmascarar como en teclado
+    ; (pala.asm:37-38).
+    and $1F
+    cp $1F              ; Comprobar que no hay tecla pulsada
     jr nz,SoltarTecla   ; Esperar hasta que no haya tecla pulsada
     ret
 
 
+MensajeGameOver:  db "GAME OVER",0             ; Derrota: sin vidas
 MensajeIniciar:   db "Quieres Jugar (S/N)? ",0  ; Mensaje para iniciar partida
 MensajeFinal:     db "ADIOS!!!!",0         
 MensajeFinDeJuego:  db "La partida ha finalizado",0        ; Mensaje de fin de juego
