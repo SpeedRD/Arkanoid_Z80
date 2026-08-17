@@ -2413,7 +2413,7 @@
  48+  9EA9              ; no son lo mismo y no comparten mensaje.
  49+  9EA9              ; ----------------------------------------------------------------------------------------
  50+  9EA9              Game_Over:
- 51+  9EA9 CD 85 A0         call reset_game
+ 51+  9EA9 CD 8D A0         call reset_game
  52+  9EAC C3 30 9A         jp Pantalla_GameOver
  53+  9EAF
  54+  9EAF              Fin_Juego:
@@ -2433,7 +2433,7 @@
  68+  9EC0 18 B1            jr Juego             ; Continuar con el juego
  69+  9EC2
  70+  9EC2              ReinicioJuego:
- 71+  9EC2 CD 85 A0         call reset_game      ; vidas, contador de nivel, bola y pala
+ 71+  9EC2 CD 8D A0         call reset_game      ; vidas, contador de nivel, bola y pala
  72+  9EC5
  73+  9EC5                  ; JP, no CALL, por lo mismo que flujo_juego -> Juego: Pantalla_Reinicio no vuelve
  74+  9EC5                  ; nunca (acaba en jp flujo_juego), asi que con CALL se abandonaba la direccion de
@@ -2474,103 +2474,110 @@
  25+  9EC8 10 14        Coord:      DB 16, 20       ; column, row -- the cell the ball occupies
  26+  9ECA 00 00        CoordFrac:  DB 0, 0         ; sub-cell fraction, same order: column, row
  27+  9ECC
- 28+  9ECC 00 FF        Vector:     DW -256         ; ROW velocity,    8.8 signed. -256 = -1.00 cells/frame (up)
- 29+  9ECE 00 01                    DW  256         ; COLUMN velocity, 8.8 signed. +256 = +1.00 cells/frame (right)
- 30+  9ED0
- 31+  9ED0 00 00        NewRow:     DW 0            ; scratch: tentative row position this frame, 8.8
- 32+  9ED2 00 00        NewCol:     DW 0            ; scratch: tentative column position this frame, 8.8
- 33+  9ED4 00           BallSaved:  DB 0            ; the attribute that was under the ball before it drew
- 34+  9ED5
- 35+  9ED5              ; ----------------------------------------------------------------------------------------
- 36+  9ED5              ; ball - advance, resolve collisions, draw, wait, restore. One frame.
- 37+  9ED5              ;   IN  - reads Coord, CoordFrac, Vector
- 38+  9ED5              ;   OUT - updates them
- 39+  9ED5              ;   Clobbers AF, DE, HL. Preserves BC, IX, IY.
- 40+  9ED5              ; ----------------------------------------------------------------------------------------
- 41+  9ED5              ball:
- 42+  9ED5 CD 07 9F             call step_ball          ; NewRow/NewCol = position + velocity
- 43+  9ED8 CD 55 9F             call resolve_collisions ; bounce / destroy; re-steps if it flipped anything
- 44+  9EDB
- 45+  9EDB                      ; --- commit the resolved position ---
- 46+  9EDB 3A D1 9E             ld a, (NewRow+1)
- 47+  9EDE 32 C9 9E             ld (Coord+1), a
- 48+  9EE1 3A D0 9E             ld a, (NewRow)
- 49+  9EE4 32 CB 9E             ld (CoordFrac+1), a
- 50+  9EE7 3A D3 9E             ld a, (NewCol+1)
- 51+  9EEA 32 C8 9E             ld (Coord), a
- 52+  9EED 3A D2 9E             ld a, (NewCol)
- 53+  9EF0 32 CA 9E             ld (CoordFrac), a
- 54+  9EF3
- 55+  9EF3                      ; --- draw, wait, restore ---
- 56+  9EF3 2A C8 9E             ld hl, (Coord)          ; L = column, H = row
- 57+  9EF6 CD 35 9F             call PosXY              ; HL = attribute address
- 58+  9EF9 7E                   ld a, (hl)
- 59+  9EFA 32 D4 9E             ld (BallSaved), a       ; whatever was here before the ball landed on it
- 60+  9EFD 36 38                ld (hl), 8*7            ; white paper
- 61+  9EFF CD 28 9F             call Esperar_pelota     ; preserves HL
- 62+  9F02 3A D4 9E             ld a, (BallSaved)
- 63+  9F05 77                   ld (hl), a              ; put it back -- NOT 0. This is the whole fix.
- 64+  9F06 C9                   ret
- 65+  9F07
- 66+  9F07              ; ----------------------------------------------------------------------------------------
- 67+  9F07              ; step_ball - NewRow/NewCol = (Coord,CoordFrac) + Vector, one axis at a time.
- 68+  9F07              ;   Called again by resolve_collisions after a bounce, so the new position is always
- 69+  9F07              ;   derived from the CURRENT velocity rather than patched up afterwards.
- 70+  9F07              ;   Clobbers AF, DE, HL.
- 71+  9F07              ; ----------------------------------------------------------------------------------------
- 72+  9F07              step_ball:
- 73+  9F07 3A C9 9E             ld a, (Coord+1)         ; row: H = whole, L = fraction
- 74+  9F0A 67                   ld h, a
- 75+  9F0B 3A CB 9E             ld a, (CoordFrac+1)
- 76+  9F0E 6F                   ld l, a
- 77+  9F0F ED 5B CC 9E          ld de, (Vector)         ; row velocity
- 78+  9F13 19                   add hl, de
- 79+  9F14 22 D0 9E             ld (NewRow), hl         ; NewRow = fraction, NewRow+1 = whole
- 80+  9F17
- 81+  9F17 3A C8 9E             ld a, (Coord)           ; column
- 82+  9F1A 67                   ld h, a
- 83+  9F1B 3A CA 9E             ld a, (CoordFrac)
- 84+  9F1E 6F                   ld l, a
- 85+  9F1F ED 5B CE 9E          ld de, (Vector+2)       ; column velocity
- 86+  9F23 19                   add hl, de
- 87+  9F24 22 D2 9E             ld (NewCol), hl
- 88+  9F27 C9                   ret
- 89+  9F28
- 90+  9F28              ;-------------------------------------------------------------------------------------------------
- 91+  9F28
- 92+  9F28              Esperar_pelota:
- 93+  9F28 E5                   push hl
- 94+  9F29 F5                   push af
- 95+  9F2A 21 00 11             ld hl, $1100      ; Ajustar el tiempo de espera
- 96+  9F2D
- 97+  9F2D              Bucle_esperar:
- 98+  9F2D 2B                   dec hl
- 99+  9F2E 7C                   ld a, h
-100+  9F2F B5                   or l
-101+  9F30 20 FB                jr nz, Bucle_esperar
-102+  9F32 F1                   pop af
-103+  9F33 E1                   pop hl
-104+  9F34 C9                   ret
-105+  9F35
-106+  9F35              PosXY:
-107+  9F35 F5                   push af
-108+  9F36 7C                   ld a, h
-109+  9F37 CB 27                sla a
-110+  9F39 CB 27                sla a
-111+  9F3B CB 27                sla a
-112+  9F3D CB 27                sla a
-113+  9F3F CB 27                sla a
-114+  9F41 B5                   or l            ; A = A : L
-115+  9F42 6F                   ld l, a
-116+  9F43 7C                   ld a, h
-117+  9F44 CB 2F                sra a
-118+  9F46 CB 2F                sra a
-119+  9F48 CB 2F                sra a
-120+  9F4A F6 58                or $58          ; A = A : $58
-121+  9F4C 67                   ld h, a
-122+  9F4D F1                   pop af
-123+  9F4E C9                   ret
-124+  9F4F
+ 28+  9ECC              ; Signed 8.8 velocity: ROW at Vector, COLUMN at Vector+2. |(-181,181)| = 256, i.e. one
+ 29+  9ECC              ; cell per frame of travel -- the SAME magnitude as every rebound_table entry and as
+ 30+  9ECC              ; reset_ball. Keep it that way: this declaration is what the very first ball of a fresh
+ 31+  9ECC              ; load flies at, because inline DB/DW data is initialised once per LOAD and reset_ball
+ 32+  9ECC              ; does not run until the first level change or lost ball. It used to say (-256,256), so
+ 33+  9ECC              ; the first ball travelled at |v| = 362 and then dropped ~30% for good on first contact
+ 34+  9ECC              ; with the paddle.
+ 35+  9ECC 4B FF        Vector:     DW -181         ; ROW velocity    (negative = upward)
+ 36+  9ECE B5 00                    DW  181         ; COLUMN velocity (positive = right)
+ 37+  9ED0
+ 38+  9ED0 00 00        NewRow:     DW 0            ; scratch: tentative row position this frame, 8.8
+ 39+  9ED2 00 00        NewCol:     DW 0            ; scratch: tentative column position this frame, 8.8
+ 40+  9ED4 00           BallSaved:  DB 0            ; the attribute that was under the ball before it drew
+ 41+  9ED5
+ 42+  9ED5              ; ----------------------------------------------------------------------------------------
+ 43+  9ED5              ; ball - advance, resolve collisions, draw, wait, restore. One frame.
+ 44+  9ED5              ;   IN  - reads Coord, CoordFrac, Vector
+ 45+  9ED5              ;   OUT - updates them
+ 46+  9ED5              ;   Clobbers AF, DE, HL. Preserves BC, IX, IY.
+ 47+  9ED5              ; ----------------------------------------------------------------------------------------
+ 48+  9ED5              ball:
+ 49+  9ED5 CD 07 9F             call step_ball          ; NewRow/NewCol = position + velocity
+ 50+  9ED8 CD 55 9F             call resolve_collisions ; bounce / destroy; re-steps if it flipped anything
+ 51+  9EDB
+ 52+  9EDB                      ; --- commit the resolved position ---
+ 53+  9EDB 3A D1 9E             ld a, (NewRow+1)
+ 54+  9EDE 32 C9 9E             ld (Coord+1), a
+ 55+  9EE1 3A D0 9E             ld a, (NewRow)
+ 56+  9EE4 32 CB 9E             ld (CoordFrac+1), a
+ 57+  9EE7 3A D3 9E             ld a, (NewCol+1)
+ 58+  9EEA 32 C8 9E             ld (Coord), a
+ 59+  9EED 3A D2 9E             ld a, (NewCol)
+ 60+  9EF0 32 CA 9E             ld (CoordFrac), a
+ 61+  9EF3
+ 62+  9EF3                      ; --- draw, wait, restore ---
+ 63+  9EF3 2A C8 9E             ld hl, (Coord)          ; L = column, H = row
+ 64+  9EF6 CD 35 9F             call PosXY              ; HL = attribute address
+ 65+  9EF9 7E                   ld a, (hl)
+ 66+  9EFA 32 D4 9E             ld (BallSaved), a       ; whatever was here before the ball landed on it
+ 67+  9EFD 36 38                ld (hl), 8*7            ; white paper
+ 68+  9EFF CD 28 9F             call Esperar_pelota     ; preserves HL
+ 69+  9F02 3A D4 9E             ld a, (BallSaved)
+ 70+  9F05 77                   ld (hl), a              ; put it back -- NOT 0. This is the whole fix.
+ 71+  9F06 C9                   ret
+ 72+  9F07
+ 73+  9F07              ; ----------------------------------------------------------------------------------------
+ 74+  9F07              ; step_ball - NewRow/NewCol = (Coord,CoordFrac) + Vector, one axis at a time.
+ 75+  9F07              ;   Called again by resolve_collisions after a bounce, so the new position is always
+ 76+  9F07              ;   derived from the CURRENT velocity rather than patched up afterwards.
+ 77+  9F07              ;   Clobbers AF, DE, HL.
+ 78+  9F07              ; ----------------------------------------------------------------------------------------
+ 79+  9F07              step_ball:
+ 80+  9F07 3A C9 9E             ld a, (Coord+1)         ; row: H = whole, L = fraction
+ 81+  9F0A 67                   ld h, a
+ 82+  9F0B 3A CB 9E             ld a, (CoordFrac+1)
+ 83+  9F0E 6F                   ld l, a
+ 84+  9F0F ED 5B CC 9E          ld de, (Vector)         ; row velocity
+ 85+  9F13 19                   add hl, de
+ 86+  9F14 22 D0 9E             ld (NewRow), hl         ; NewRow = fraction, NewRow+1 = whole
+ 87+  9F17
+ 88+  9F17 3A C8 9E             ld a, (Coord)           ; column
+ 89+  9F1A 67                   ld h, a
+ 90+  9F1B 3A CA 9E             ld a, (CoordFrac)
+ 91+  9F1E 6F                   ld l, a
+ 92+  9F1F ED 5B CE 9E          ld de, (Vector+2)       ; column velocity
+ 93+  9F23 19                   add hl, de
+ 94+  9F24 22 D2 9E             ld (NewCol), hl
+ 95+  9F27 C9                   ret
+ 96+  9F28
+ 97+  9F28              ;-------------------------------------------------------------------------------------------------
+ 98+  9F28
+ 99+  9F28              Esperar_pelota:
+100+  9F28 E5                   push hl
+101+  9F29 F5                   push af
+102+  9F2A 21 00 11             ld hl, $1100      ; Ajustar el tiempo de espera
+103+  9F2D
+104+  9F2D              Bucle_esperar:
+105+  9F2D 2B                   dec hl
+106+  9F2E 7C                   ld a, h
+107+  9F2F B5                   or l
+108+  9F30 20 FB                jr nz, Bucle_esperar
+109+  9F32 F1                   pop af
+110+  9F33 E1                   pop hl
+111+  9F34 C9                   ret
+112+  9F35
+113+  9F35              PosXY:
+114+  9F35 F5                   push af
+115+  9F36 7C                   ld a, h
+116+  9F37 CB 27                sla a
+117+  9F39 CB 27                sla a
+118+  9F3B CB 27                sla a
+119+  9F3D CB 27                sla a
+120+  9F3F CB 27                sla a
+121+  9F41 B5                   or l            ; A = A : L
+122+  9F42 6F                   ld l, a
+123+  9F43 7C                   ld a, h
+124+  9F44 CB 2F                sra a
+125+  9F46 CB 2F                sra a
+126+  9F48 CB 2F                sra a
+127+  9F4A F6 58                or $58          ; A = A : $58
+128+  9F4C 67                   ld h, a
+129+  9F4D F1                   pop af
+130+  9F4E C9                   ret
+131+  9F4F
 # file closed: pelota.asm
  36   9F4F                      INCLUDE "colisiones.asm"
 # file opened: colisiones.asm
@@ -2644,7 +2651,7 @@
  68+  9F67 FE 04                cp CELL_PADDLEROW
  69+  9F69 28 0D                jr z, rc_paddle
  70+  9F6B CD F1 9F             call destroy_if_brick
- 71+  9F6E CD 95 A0             call flip_row_velocity
+ 71+  9F6E CD 9D A0             call flip_row_velocity
  72+  9F71 21 54 9F             ld hl, bounce_flags
  73+  9F74 CB C6                set 0, (hl)
  74+  9F76 18 08                jr rc_horizontal
@@ -2664,7 +2671,7 @@
  88+  9F8B B7                   or a
  89+  9F8C 28 0B                jr z, rc_diagonal
  90+  9F8E CD F1 9F             call destroy_if_brick
- 91+  9F91 CD 9F A0             call flip_col_velocity
+ 91+  9F91 CD A7 A0             call flip_col_velocity
  92+  9F94 21 54 9F             ld hl, bounce_flags
  93+  9F97 CB CE                set 1, (hl)
  94+  9F99
@@ -2683,8 +2690,8 @@
 107+  9FAC FE 04                cp CELL_PADDLEROW
 108+  9FAE 28 0B                jr z, rc_diag_paddle
 109+  9FB0 CD F1 9F             call destroy_if_brick
-110+  9FB3 CD 95 A0             call flip_row_velocity
-111+  9FB6 CD 9F A0             call flip_col_velocity
+110+  9FB3 CD 9D A0             call flip_row_velocity
+111+  9FB6 CD A7 A0             call flip_col_velocity
 112+  9FB9 18 03                jr rc_restep
 113+  9FBB              rc_diag_paddle:
 114+  9FBB CD 18 A0             call paddle_hit
@@ -2814,7 +2821,7 @@
 238+  A025 87                   add a, a                        ; x4: each table entry is two 16-bit words
 239+  A026 5F                   ld e, a
 240+  A027 16 00                ld d, 0
-241+  A029 21 B1 A0             ld hl, rebound_table
+241+  A029 21 B9 A0             ld hl, rebound_table
 242+  A02C 19                   add hl, de
 243+  A02D 5E                   ld e, (hl)
 244+  A02E 23                   inc hl
@@ -2855,7 +2862,7 @@
 279+  A050                      ; without unbalancing anything.
 280+  A050 3E 01                ld a, 1
 281+  A052 32 51 9F             ld (ball_lost), a
-282+  A055 C3 95 A0             jp flip_row_velocity    ; bounce anyway, so this frame still ends somewhere legal
+282+  A055 C3 9D A0             jp flip_row_velocity    ; bounce anyway, so this frame still ends somewhere legal
 283+  A058
 284+  A058              ; ----------------------------------------------------------------------------------------
 285+  A058              ; reset_ball - back to the serve position, travelling up and to the right.
@@ -2869,95 +2876,126 @@
 293+  A062 AF                   xor a
 294+  A063 32 CA 9E             ld (CoordFrac), a
 295+  A066 32 CB 9E             ld (CoordFrac+1), a
-296+  A069 21 00 FF             ld hl, -256
-297+  A06C 22 CC 9E             ld (Vector), hl         ; one cell per frame upward
-298+  A06F 21 00 01             ld hl, 256
-299+  A072 22 CE 9E             ld (Vector+2), hl       ; and one to the right
-300+  A075 C9                   ret
-301+  A076
-302+  A076              ; ----------------------------------------------------------------------------------------
-303+  A076              ; reset_round - ball and paddle back to their start positions.
-304+  A076              ;   Used on level change AND after losing a ball. Bricks and lives are left alone.
-305+  A076              ;   Nothing in this game reset anything before: a new level began with the ball wherever
-306+  A076              ;   it happened to be, and a second game started with everything where the first ended.
-307+  A076              ;   Clobbers AF, HL.
-308+  A076              ; ----------------------------------------------------------------------------------------
-309+  A076              reset_round:
-310+  A076 CD 58 A0             call reset_ball
-311+  A079 3A 0E 9B             ld a, (POSICION)
-312+  A07C 32 0F 9B             ld (POSICION+1), a      ; make the paddle's CURRENT column the "previous" one so
-313+  A07F                                              ; the next dibujarpala erases it before redrawing at the
-314+  A07F                                              ; centre. Leaving a stale value here erases a column the
-315+  A07F                                              ; paddle no longer occupies.
-316+  A07F 3E 0E                ld a, PADDLE_START
-317+  A081 32 0E 9B             ld (POSICION), a
-318+  A084 C9                   ret
-319+  A085
-320+  A085              ; ----------------------------------------------------------------------------------------
-321+  A085              ; reset_game - everything a brand-new game needs, including the bytes the loader only
-322+  A085              ;   ever initialises once.
-323+  A085              ;   Clobbers AF, HL.
-324+  A085              ; ----------------------------------------------------------------------------------------
-325+  A085              reset_game:
-326+  A085 CD 76 A0             call reset_round
-327+  A088 3E 03                ld a, INITIAL_LIVES
-328+  A08A 32 50 9F             ld (lives), a
-329+  A08D AF                   xor a
-330+  A08E 32 51 9F             ld (ball_lost), a
-331+  A091 32 72 9E             ld (levelCounter), a
-332+  A094 C9                   ret
-333+  A095
-334+  A095              ; ----------------------------------------------------------------------------------------
-335+  A095              ; flip_row_velocity / flip_col_velocity - negate one 16-bit signed 8.8 component.
-336+  A095              ;   Clobbers AF, HL.
-337+  A095              ; ----------------------------------------------------------------------------------------
-338+  A095              flip_row_velocity:
-339+  A095 2A CC 9E             ld hl, (Vector)
-340+  A098 CD A9 A0             call negate_hl
-341+  A09B 22 CC 9E             ld (Vector), hl
-342+  A09E C9                   ret
-343+  A09F
-344+  A09F              flip_col_velocity:
-345+  A09F 2A CE 9E             ld hl, (Vector+2)
-346+  A0A2 CD A9 A0             call negate_hl
-347+  A0A5 22 CE 9E             ld (Vector+2), hl
-348+  A0A8 C9                   ret
-349+  A0A9
-350+  A0A9              negate_hl:
-351+  A0A9 7C                   ld a, h
-352+  A0AA 2F                   cpl
-353+  A0AB 67                   ld h, a
-354+  A0AC 7D                   ld a, l
-355+  A0AD 2F                   cpl
-356+  A0AE 6F                   ld l, a
-357+  A0AF 23                   inc hl
-358+  A0B0 C9                   ret
-359+  A0B1
-360+  A0B1              ; ----------------------------------------------------------------------------------------
-361+  A0B1              ; Rebound angles, indexed by where on the 7-cell paddle the ball landed.
-362+  A0B1              ;
-363+  A0B1              ; Centre sends the ball steeply up, the edges send it out shallow and wide -- the classic
-364+  A0B1              ; Arkanoid feel. Both components are 8.8 fixed point, and the table obeys the two hard
-365+  A0B1              ; invariants: every row velocity is NON-ZERO (a horizontal ball never comes back and the
-366+  A0B1              ; game live-locks), and no magnitude exceeds $0100 = one cell per frame (or the ball skips
-367+  A0B1              ; cells and can pass straight through a brick).
-368+  A0B1              ; ----------------------------------------------------------------------------------------
-369+  A0B1                              ;   row velocity     column velocity
-370+  A0B1              rebound_table:
-371+  A0B1 80 FF                DW -128
-371+  A0B3 00 FF          DW -256          ; 0  far left    shallow, hard left
-372+  A0B5 60 FF                DW -160
-372+  A0B7 40 FF          DW -192          ; 1
-373+  A0B9 20 FF                DW -224
-373+  A0BB 80 FF          DW -128          ; 2
-374+  A0BD 00 FF                DW -256
-374+  A0BF 40 00          DW   64          ; 3  centre      steep; sign follows the incoming ball
-375+  A0C1 20 FF                DW -224
-375+  A0C3 80 00          DW  128          ; 4
-376+  A0C5 60 FF                DW -160
-376+  A0C7 C0 00          DW  192          ; 5
-377+  A0C9 80 FF                DW -128
-377+  A0CB 00 01          DW  256          ; 6  far right   shallow, hard right
-378+  A0CD
+296+  A069                      ; 45 degrees up and to the right, at the SAME magnitude as every rebound_table
+297+  A069                      ; entry: |(-181,181)| = 256 = one cell per frame of travel. Serving at
+298+  A069                      ; (-256,+256) instead would be |v| = 362, i.e. 41% faster than the ball can ever
+299+  A069                      ; travel after touching the paddle, so it would visibly slow down for good on
+300+  A069                      ; first contact.
+301+  A069 21 4B FF             ld hl, -181
+302+  A06C 22 CC 9E             ld (Vector), hl
+303+  A06F 21 B5 00             ld hl, 181
+304+  A072 22 CE 9E             ld (Vector+2), hl
+305+  A075 C9                   ret
+306+  A076
+307+  A076              ; ----------------------------------------------------------------------------------------
+308+  A076              ; reset_round - ball and paddle back to their start positions.
+309+  A076              ;   Used on level change AND after losing a ball. Bricks and lives are left alone.
+310+  A076              ;   Nothing in this game reset anything before: a new level began with the ball wherever
+311+  A076              ;   it happened to be, and a second game started with everything where the first ended.
+312+  A076              ;   Clobbers AF, HL.
+313+  A076              ; ----------------------------------------------------------------------------------------
+314+  A076              reset_round:
+315+  A076 CD 58 A0             call reset_ball
+316+  A079                      ; Erase the paddle where it is RIGHT NOW, immediately, instead of recording a
+317+  A079                      ; pending erase in POSICION+1 for dibujarpala to pick up later.
+318+  A079                      ;
+319+  A079                      ; POSICION+1 is a single-slot pending erase written by BOTH nuevaposicion and
+320+  A079                      ; this routine, and consumed only by dibujarpala. On the frame a ball is lost
+321+  A079                      ; the loop leaves via `jp Ball_Lost`, so dibujarpala never runs that frame --
+322+  A079                      ; and on the next frame nuevaposicion overwrites POSICION+1 first, discarding
+323+  A079                      ; the pending erase. The old paddle then stayed painted, and every later move
+324+  A079                      ; only erased one column behind, so the leftovers survived on screen.
+325+  A079                      ; Erasing here means a pending erase never has to survive a frame boundary.
+326+  A079 3A 0E 9B             ld a, (POSICION)
+327+  A07C 0E 00                ld c, 0
+328+  A07E CD 24 9B             call dibujarpalacolor
+329+  A081 3E 0E                ld a, PADDLE_START
+330+  A083 32 0E 9B             ld (POSICION), a
+331+  A086 AF                   xor a
+332+  A087 32 0F 9B             ld (POSICION+1), a      ; nothing pending
+333+  A08A C3 10 9B             jp dibujarpala          ; ...and draw it at the centre now, so the paddle does
+334+  A08D                                              ; not blink out for a frame between erase and redraw
+335+  A08D
+336+  A08D              ; ----------------------------------------------------------------------------------------
+337+  A08D              ; reset_game - everything a brand-new game needs, including the bytes the loader only
+338+  A08D              ;   ever initialises once.
+339+  A08D              ;   Clobbers AF, HL.
+340+  A08D              ; ----------------------------------------------------------------------------------------
+341+  A08D              reset_game:
+342+  A08D CD 76 A0             call reset_round
+343+  A090 3E 03                ld a, INITIAL_LIVES
+344+  A092 32 50 9F             ld (lives), a
+345+  A095 AF                   xor a
+346+  A096 32 51 9F             ld (ball_lost), a
+347+  A099 32 72 9E             ld (levelCounter), a
+348+  A09C C9                   ret
+349+  A09D
+350+  A09D              ; ----------------------------------------------------------------------------------------
+351+  A09D              ; flip_row_velocity / flip_col_velocity - negate one 16-bit signed 8.8 component.
+352+  A09D              ;   Clobbers AF, HL.
+353+  A09D              ; ----------------------------------------------------------------------------------------
+354+  A09D              flip_row_velocity:
+355+  A09D 2A CC 9E             ld hl, (Vector)
+356+  A0A0 CD B1 A0             call negate_hl
+357+  A0A3 22 CC 9E             ld (Vector), hl
+358+  A0A6 C9                   ret
+359+  A0A7
+360+  A0A7              flip_col_velocity:
+361+  A0A7 2A CE 9E             ld hl, (Vector+2)
+362+  A0AA CD B1 A0             call negate_hl
+363+  A0AD 22 CE 9E             ld (Vector+2), hl
+364+  A0B0 C9                   ret
+365+  A0B1
+366+  A0B1              negate_hl:
+367+  A0B1 7C                   ld a, h
+368+  A0B2 2F                   cpl
+369+  A0B3 67                   ld h, a
+370+  A0B4 7D                   ld a, l
+371+  A0B5 2F                   cpl
+372+  A0B6 6F                   ld l, a
+373+  A0B7 23                   inc hl
+374+  A0B8 C9                   ret
+375+  A0B9
+376+  A0B9              ; ----------------------------------------------------------------------------------------
+377+  A0B9              ; Rebound angles, indexed by where on the 7-cell paddle the ball landed.
+378+  A0B9              ;
+379+  A0B9              ; Centre sends the ball steeply up, the edges send it out shallow and wide -- the classic
+380+  A0B9              ; Arkanoid feel. Both components are 8.8 fixed point, and the table obeys the two hard
+381+  A0B9              ; invariants: every row velocity is NON-ZERO (a horizontal ball never comes back and the
+382+  A0B9              ; game live-locks), and no magnitude exceeds $0100 = one cell per frame (or the ball skips
+383+  A0B9              ; cells and can pass straight through a brick).
+384+  A0B9              ; ----------------------------------------------------------------------------------------
+385+  A0B9              ; SPEED IS CONSTANT. Every entry has |v| = 256 +/- 1, i.e. exactly one cell per frame of
+386+  A0B9              ; travel, and reset_ball serves at the same magnitude. Only the DIRECTION varies.
+387+  A0B9              ;
+388+  A0B9              ; This is the whole point and it is easy to get wrong: a rebound must change where the
+389+  A0B9              ; ball is going without changing how fast it is going. The first version of this table
+390+  A0B9              ; varied from 250 to 286 and, worse, the serve was 362 (-1.00,+1.00 at 45 degrees) -- so
+391+  A0B9              ; the ball was launched 26-45% faster than any rebound could ever return it, and dropped
+392+  A0B9              ; to walking pace the instant it first touched the paddle, permanently. Wall and brick
+393+  A0B9              ; bounces only negate a component, so they preserve whatever magnitude they are given and
+394+  A0B9              ; the ball never recovered.
+395+  A0B9              ;
+396+  A0B9              ; 256 is the ceiling: no single component may exceed $0100 (one cell per axis per frame)
+397+  A0B9              ; or the ball skips cells, and the shallowest entries here are already at 222.
+398+  A0B9              ;
+399+  A0B9              ;                row velocity     column velocity    angle from vertical
+400+  A0B9              rebound_table:
+401+  A0B9 80 FF                DW -128
+401+  A0BB 22 FF          DW -222          ; 0  far left     60 deg  -- shallow, hard left
+402+  A0BD 4B FF                DW -181
+402+  A0BF 4B FF          DW -181          ; 1               45 deg
+403+  A0C1 22 FF                DW -222
+403+  A0C3 80 FF          DW -128          ; 2               30 deg
+404+  A0C5 08 FF                DW -248
+404+  A0C7 40 00          DW   64          ; 3  centre       14 deg  -- steep; sign follows the
+405+  A0C9                                                  ;                            incoming ball
+406+  A0C9 22 FF                DW -222
+406+  A0CB 80 00          DW  128          ; 4               30 deg
+407+  A0CD 4B FF                DW -181
+407+  A0CF B5 00          DW  181          ; 5               45 deg
+408+  A0D1 80 FF                DW -128
+408+  A0D3 DE 00          DW  222          ; 6  far right    60 deg  -- shallow, hard right
+409+  A0D5
 # file closed: colisiones.asm
 # file closed: main.asm

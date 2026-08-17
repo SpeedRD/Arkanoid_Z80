@@ -25,8 +25,15 @@
 Coord:      DB 16, 20       ; column, row -- the cell the ball occupies
 CoordFrac:  DB 0, 0         ; sub-cell fraction, same order: column, row
 
-Vector:     DW -256         ; ROW velocity,    8.8 signed. -256 = -1.00 cells/frame (up)
-            DW  256         ; COLUMN velocity, 8.8 signed. +256 = +1.00 cells/frame (right)
+; Signed 8.8 velocity: ROW at Vector, COLUMN at Vector+2. |(-181,181)| = 256, i.e. one
+; cell per frame of travel -- the SAME magnitude as every rebound_table entry and as
+; reset_ball. Keep it that way: this declaration is what the very first ball of a fresh
+; load flies at, because inline DB/DW data is initialised once per LOAD and reset_ball
+; does not run until the first level change or lost ball. It used to say (-256,256), so
+; the first ball travelled at |v| = 362 and then dropped ~30% for good on first contact
+; with the paddle.
+Vector:     DW -181         ; ROW velocity    (negative = upward)
+            DW  181         ; COLUMN velocity (positive = right)
 
 NewRow:     DW 0            ; scratch: tentative row position this frame, 8.8
 NewCol:     DW 0            ; scratch: tentative column position this frame, 8.8
