@@ -22,8 +22,8 @@ $FF in the Y position terminates the map
 ```
 
 Verified against `Mapas.asm:20-30` (map0 opens `DEFB 82`, then `DEFB 3, 12, 0, 0, 2, ...` — Y=3,
-12 entries, then 12 colours) and against `Mostrar_Mapa` (`PintarMapa.asm:1-6`), which reads that
-first byte into `A` and then **immediately overwrites `A` at line 6**.
+12 entries, then 12 colours). `Mostrar_Mapa` reads that first byte and **now stores it into
+`bricks_left`**; it used to load it into `A` and immediately overwrite `A` two lines later.
 
 Colour semantics: **0 = no brick**, **1-7 = destructible**, **8 = indestructible**.
 
@@ -42,9 +42,14 @@ maps:**
 `map2` is the discriminating case: it has 82 non-empty cells, four of which are the colour-8
 indestructible bricks at `Mapas.asm:53`, leaving 78 destructible. The header says 78.
 
-**Conclusion: byte 0 is the count of destructible bricks, and it is correct for all four maps.** You
-can trust it as the completion counter. It is exactly the number level-completion detection needs,
-and `Mostrar_Mapa` currently reads it and throws it away. → **collision-and-physics** §9
+**Conclusion: byte 0 is the count of destructible bricks, and it is correct for all four maps.** It
+**is** the completion counter: `Mostrar_Mapa` loads it into `bricks_left` at level start,
+`destroy_brick` decrements it once per brick, and the frame loop advances the level when it reaches
+zero. `tests/test_colisiones.py` asserts all four values load correctly, and `checklist.py` asserts
+`bricks_left × 2` always equals the lit brick cells on screen.
+
+**So byte 0 is load-bearing now, not just descriptive.** Get it wrong in a new map and the level
+either ends early or can never be completed. → **collision-and-physics** §9
 
 (Also verified: every row's declared entry count matches the number of colour bytes that follow. The
 data is internally consistent.)
@@ -52,7 +57,7 @@ data is internally consistent.)
 ## 3. Colour → attribute, and two rendering consequences
 
 `Mostrar_Mapa` shifts the colour left three times to move it into the PAPER bits
-(`PintarMapa.asm:23-25`):
+(`PintarMapa.asm:27-29`):
 
 ```
 sla a
@@ -62,23 +67,28 @@ sla a          ; A = colour << 3
 
 **Consequence (a): colour 8 is invisible.** `8 << 3` = `$40` — BRIGHT set, PAPER 0, INK 0. Bright
 black on black. `map2`'s four indestructible bricks are drawn and **cannot be seen**. This is a real
-bug and it predates you; do not report it as a regression. It also means a player has no way to know
-why the ball bounces off empty-looking cells.
+bug and it predates you; do not report it as a regression.
+
+They do still work as gameplay: `classify_cell` returns `CELL_HARD` for `$40`, so the ball bounces
+off them and they are never destroyed or counted. They are simply invisible while doing it, which
+means a player has no way to know why the ball bounced off an empty-looking cell.
 
 **Consequence (b): empty and erased are indistinguishable.** Colour 0 shifts to `$00`, and
 `Mostrar_Mapa` *paints* it rather than skipping the cell — so an empty map cell and a destroyed brick
 both read back as attribute 0. Per **failure-patterns**, this was a deliberate retreat: a
-commented-out zero-skip path (`Salto_Ladrillo`) was tried and deleted in `7d39c74`.
+commented-out zero-skip path (`Salto_Ladrillo`) was tried and deleted in `7d39c74`. It is harmless
+now, because "empty" and "destroyed" mean the same thing to the collision code.
 
 Both consequences constrain collision design — the attribute alone is not a sufficient classifier.
-This file owns the **colour → attribute mapping** and its two consequences; **memory-map-and-playfield**
-§4 owns the **attribute byte layout** and the full per-entity table, including the collision that
-matters most: **brick colour 2 renders as `$10`, byte-identical to the paddle.**
+This file owns the **colour → attribute mapping**; **memory-map-and-playfield** §4 owns the
+**attribute byte layout** and the full per-entity table, including the two aliases that matter most:
+**colour 2 renders as `$10`, byte-identical to the paddle, and colour 7 renders as `$38`,
+byte-identical to the ball.**
 
 ## 4. Geometry
 
-Bricks are **2 attribute cells wide**. `PintarMapa.asm:27-30` writes the attribute, `inc hl`, writes
-the same attribute again, `inc hl`. Each row starts at **column 1** (`PintarMapa.asm:10`, `ld C,1`).
+Bricks are **2 attribute cells wide**. `PintarMapa.asm:31-34` writes the attribute, `inc hl`, writes
+the same attribute again, `inc hl`. Each row starts at **column 1** (`PintarMapa.asm:14`, `ld C,1`).
 
 So **entry `i` of a row (0-based) occupies attribute columns `1 + 2i` and `2 + 2i`.**
 
@@ -101,26 +111,27 @@ Entry:  IX = pointer to a map's byte 0
 Exit:   IX = pointer to the $FF terminator  (ON it, not past it)
 ```
 
-Sequence (`PintarMapa.asm:1-45`):
+Sequence:
 
-1. `:2-3` read byte 0 into `A`, `inc ix` — then `:6` overwrites `A`. **The brick count is discarded.**
-2. `Fila:` `:6-8` read Y into `A`, `inc ix`.
-3. `:9-11` set `B` = Y, `C` = 1, `call CalcularAtributo` → `HL` = address of column 1 on that row.
-4. `:13-15` read the entry count into `B`.
-5. `Fila_Ladrillo:` `:20-32` read a colour, `inc ix`, shift left 3, write it to `(HL)` twice with two
+1. Read byte 0 into `A` and **store it in `bricks_left`**, then `inc ix`. (This step used to discard
+   the count — `A` was overwritten two instructions later.)
+2. `Fila:` `:9-11` read Y into `A`, `inc ix`.
+3. `:13-15` set `B` = Y, `C` = 1, `call CalcularAtributo` → `HL` = address of column 1 on that row.
+4. `:17-19` read the entry count into `B`.
+5. `Fila_Ladrillo:` `:23-36` read a colour, `inc ix`, shift left 3, write it to `(HL)` twice with two
    `inc hl`, `djnz`.
-6. `:34-36` peek at the next byte; if `$FF`, `jr z, Fin_Dibujo` — **without advancing `IX`**.
-7. Otherwise `jr Fila` (`:39`).
+6. `:38-40` peek at the next byte; if `$FF`, `jr z, Fin_Dibujo` — **without advancing `IX`**.
+7. Otherwise `jr Fila` (`:43`).
 
-**`CalcularAtributo` destroys `BC`**, which is harmless here only because `B` is reloaded at `:13-15`
+**`CalcularAtributo` destroys `BC`**, which is harmless here only because `B` is reloaded at `:17-19`
 and `C` is never read again. → **state-and-register-contracts** §3
 
-**Dead code:** `call Pala_Juego` at `PintarMapa.asm:40` sits immediately after the unconditional
-`jr Fila` at `:39` and is unreachable. Ignore it; do not "restore" it.
+**Dead code:** `call Pala_Juego` at `PintarMapa.asm:44` sits immediately after the unconditional
+`jr Fila` at `:43` and is unreachable. Ignore it; do not "restore" it.
 
 ## 6. THE ADJACENCY DEPENDENCY — read before touching `Mapas.asm`
 
-`Fin_Juego` advances the level like this (`Partida.asm:19-21`):
+`Fin_Juego` advances the level like this (`Partida.asm:54-56`):
 
 ```asm
 Fin_Juego:
@@ -132,14 +143,15 @@ Fin_Juego:
 on the `$FF` terminator by `Mostrar_Mapa` (§5). Adding 1 steps off the terminator and onto the next
 map's byte 0 — **and that only works because the maps are physically back-to-back in memory.**
 
-Verified addresses from a fresh listing:
+Verified addresses from a fresh listing. **They all shifted when `colisiones.asm` grew** — the shape
+is what matters, not the numbers, and you should re-read them from `main.lst`:
 
 | Map | Starts at | `$FF` terminator at | Next byte |
 |---|---|---|---|
-| `map0` | `$9BB4` | `$9C38` | `$9C39` = **`map1`** |
-| `map1` | `$9C39` | `$9CD9` | `$9CDA` = **`map2`** |
-| `map2` | `$9CDA` | `$9D4A` | `$9D4B` = **`map3`** |
-| `map3` | `$9D4B` | `$9E3D` | `$9E3E` = **`levelCounter`** (!) |
+| `map0` | `$9BEA` | `$9C6E` | `$9C6F` = **`map1`** |
+| `map1` | `$9C6F` | `$9D0F` | `$9D10` = **`map2`** |
+| `map2` | `$9D10` | `$9D80` | `$9D81` = **`map3`** |
+| `map3` | `$9D81` | `$9E73` | `$9E74` = **`levelCounter`** (!) |
 
 Every terminator is immediately followed by the next map's first byte, with **zero padding**.
 
@@ -149,7 +161,7 @@ Every terminator is immediately followed by the next map's first byte, with **ze
 - **A new map may only be appended at the end**, after `map3`. Inserting one anywhere else
   renumbers the sequence silently.
 - **Do not reorder `map0..map3`.**
-- **Do not move `Mapas.asm` in the include list** (`main.asm:32`), and do not split the maps across
+- **Do not move `Mapas.asm` in the include list** (`main.asm:33`), and do not split the maps across
   files.
 - Adding a comment or blank line between maps is fine — those emit no bytes. Adding a `DEFB` is not.
 
@@ -164,7 +176,7 @@ Every terminator is immediately followed by the next map's first byte, with **ze
 maplist: DEFW map0, map1, map2, map3
 ```
 
-An 8-byte pointer table at `$9BAC`. It is read **exactly once** — `main.asm:17`, `ld ix,(maplist)`,
+An 8-byte pointer table at `$9BE2`. It is read **exactly once** — `main.asm:17`, `ld ix,(maplist)`,
 which loads only the *first* entry — and **never indexed again**. Level advance walks the raw data
 instead (§6). The table is dead weight that looks load-bearing.
 
@@ -192,9 +204,8 @@ a worthwhile cleanup, but it is not required for collision work — note that `C
 
 ## 8. The end-of-maps bound is correct by ordering only
 
-`Fin_Juego` increments `IX` **before** testing `levelCounter` (`Partida.asm:20-21` then `:24-28`).
-So after `map3` completes, `IX` briefly holds `$9E3E` — which is `levelCounter` itself, followed by
-`Juego`'s code. That is not map data.
+`Fin_Juego` increments `IX` **before** testing `levelCounter`. So after `map3` completes, `IX` briefly
+holds `$9E74` — which is `levelCounter` itself, followed by `Juego`'s code. That is not map data.
 
 It is never dereferenced: `levelCounter` reaches `CantidadNiveles` = 4 on that same pass and the code
 branches to `ReinicioJuego` (`:28`) without ever calling `Mostrar_Mapa` again.
@@ -207,7 +218,8 @@ before increment — and the game reads `levelCounter` and executable code as a 
 
 - [ ] Append the new map **after `map3`** in `Mapas.asm`, immediately adjacent — no padding.
 - [ ] Count your destructible bricks (colours 1-7, excluding 0 and 8) and put that number in
-      **byte 0**. Completion detection will trust it (§2).
+      **byte 0**. Completion detection trusts it absolutely (§2). **Too high and the level can never
+      be completed; too low and it completes with bricks still standing.**
 - [ ] Every row: `Y, count, <count colour bytes>`. The count must match the number of colours exactly.
 - [ ] Keep `count ≤ 15` (§4) — 14 is the largest in use, giving columns 1-28.
 - [ ] Keep Y in 1-22; 3-18 matches the existing style and leaves the ball room.
@@ -220,8 +232,10 @@ before increment — and the game reads `levelCounter` and executable code as a 
       mismatch are bugs:** too low and the new level is never reached; too high and `Fin_Juego` walks
       `IX` past the last map into `levelCounter` and executable code before the `cp` catches it (§8).
 - [ ] Avoid colour 8 unless you intend invisible bricks (§3a).
-- [ ] Check the level is actually completable. Parity alone does not strand a brick (bricks span both
-      parities), but with a fixed 45° ball the trajectory is deterministic and may simply never reach
-      one. → **collision-and-physics** §7
-- [ ] Build and step through every level to confirm each renders — with the F key, or with whatever
-      replaced it once completion detection lands. → **build-and-verify** §6
+- [ ] Check the level is actually completable. This is much less fragile than it was: the paddle now
+      gives a **variable rebound angle**, so the trajectory is player-controlled rather than a fixed
+      property of the map. The tests prove the mechanism, **not** that your geometry is reachable.
+      → **collision-and-physics** §7
+- [ ] Build and step through every level to confirm each renders. The F key is gone; levels advance
+      when the last destructible brick falls. To step through quickly, poke `bricks_left` to 0 —
+      `tests/checklist.py` does exactly that. → **build-and-verify** §6

@@ -1,6 +1,6 @@
 ---
 name: build-and-verify
-description: Use when building, running or debugging this project, or when you need to confirm a change actually works. There is no automated test suite — this file is the verification procedure. Read it before claiming any change is done.
+description: Use when building, running or debugging this project, or when you need to confirm a change actually works. Covers the build script, the ZEsarUX/DeZog run procedure, and the automated test suites in tests/. Read it before claiming any change is done.
 ---
 
 # Build, run and verify
@@ -12,338 +12,249 @@ description: Use when building, running or debugging this project, or when you n
 | **SjASMPlus 1.23.1** | installed, on `PATH` | `/usr/local/bin/sjasmplus` |
 | **DeZog 3.7.4** | installed | `~/.vscode/extensions/maziac.dezog-3.7.4` |
 | **ZEsarUX 13.0** | **installed, but NOT on `PATH`** | `/opt/homebrew/Caskroom/zesarux/13.0/ZEsarUX.app` |
+| **Python 3** | for the test harness | `tests/` |
 
-ZEsarUX was installed as a Homebrew **cask** (an `.app` bundle), so there is no `zesarux` command.
-The binary is at:
+ZEsarUX was installed as a Homebrew **cask** (an `.app` bundle), so there is no `zesarux` command:
 
 ```
 /opt/homebrew/Caskroom/zesarux/13.0/ZEsarUX.app/Contents/MacOS/zesarux
 ```
 
-Verified runnable — `--help` responds. Two things to know:
-
-- Homebrew marks this cask **deprecated because it fails the macOS Gatekeeper check**, with removal
-  scheduled for 2026-09-01. It works today. If a future reinstall fails, get it from
-  <https://github.com/chernandezba/zesarux> directly.
-- Adding a shell alias or a `PATH` entry for that binary makes the run step below much less painful.
+Homebrew marks this cask **deprecated because it fails the macOS Gatekeeper check**, with removal
+scheduled for 2026-09-01. It works today. If a future reinstall fails, get it from
+<https://github.com/chernandezba/zesarux> directly.
 
 ## 2. Building
 
-One command, from the repo root:
+```
+./build.sh              # builds main.bin / main.lst / main.sld in place
+./build.sh /tmp/out     # builds into another directory, leaving the repo clean
+```
+
+`build.sh` wraps the one real command and adds the check that matters:
 
 ```
 sjasmplus --fullpath --lst=main.lst --sld=main.sld --raw=main.bin main.asm
 ```
 
-That is exactly what the VS Code task runs (`.vscode/tasks.json:5-15`, label
-**`sjasmplus: build main`**, the default build task, `cwd` = workspace folder). `launch.json` wires it
-as `preLaunchTask`, so **F5 rebuilds automatically.**
+**sjasmplus exits 0 even when it emits warnings**, so the script reads the `Errors:` summary line and
+fails unless it is `Errors: 0, warnings: 0`. Use the script rather than the raw command — a build
+that "succeeded" with warnings is a regression you will not otherwise notice.
 
-To build **without touching the repo's committed artifacts**:
-
-```
-sjasmplus --fullpath --raw=/tmp/scratch/main.bin --lst=/tmp/scratch/main.lst main.asm
-```
+The VS Code task (`.vscode/tasks.json`, label **`sjasmplus: build main`**, the default build task)
+runs the same sjasmplus invocation, and `launch.json` wires it as `preLaunchTask`, so **F5 rebuilds
+automatically.**
 
 ### Current baseline
 
 ```
-Errors: 0, warnings: 0, compiled: 991 lines
-7923 bytes, $8000-$9EF2
+Errors: 0, warnings: 0, compiled: 1500 lines
+8399 bytes, $8000-$A0CE
 ```
 
-**Verified: the freshly built binary is byte-identical to the committed `main.bin`.** The working
-tree has modifications (`main.asm` lost a 7-line comment header, and `main.lst`/`main.sld` were
-rebuilt), but the *binary* is unchanged, because comments emit no bytes. AUDIT.md §1 records 998
-lines — that was before the header removal; **991 is correct now.**
-
-Hold that baseline. A new warning is a regression, and the line count should move by roughly what
-you added.
+Hold that baseline. A new warning is a regression, and the line count should move by roughly what you
+added. (It was 991 lines / 7923 bytes before collision work; `colisiones.asm` accounts for most of
+the difference.)
 
 > **One warning that is not your fault:** `--sld` without `--fullpath` prints
-> `warning: missing --fullpath with --sld may produce incomplete file paths`. The repo's task passes
+> `warning: missing --fullpath with --sld may produce incomplete file paths`. `build.sh` passes
 > `--fullpath`, so the real build is clean. Pass it in ad-hoc builds too.
 
 ## 3. The one build rule: always build `main.asm`
 
 **Every other `.asm` in this repo is an `INCLUDE` fragment, not a standalone program.** Assembling
-one directly produces a cascade of `error: Label not found` (`dibujar_tablero`, `PosXY`,
-`CalcularAtributo`, …) and a garbage binary whose every `call` target is assembled as `CD 00 00`.
+one directly produces a cascade of `error: Label not found` and a garbage binary whose every `call`
+target is assembled as `CD 00 00`. Note that a *clean* standalone build is not a safe one either:
+`pelota.asm` used to assemble without errors but produced a fragment `org`'d at `$8000` containing
+only the ball code.
 
-This is not hypothetical — **the wreckage is committed**, though it varies by file. Measured error
-counts in the committed listings:
+The wreckage from this used to be committed. It is now deleted, and `.gitignore` covers
+`*.bin`/`*.lst`/`*.sld` — with `!charset.bin` excepted, because that is a **source asset**
+(`incbin`'d by the text library), not build output. Deleting or ignoring it breaks the build.
 
-| File | `Label not found` errors |
-|---|---|
-| `mensaje_inicio.lst` | 6 (`PRINTAT` ×3, `CLEARSCR` ×2, …) |
-| `Partida.lst` | 4 (`dibujar_tablero`, `Mostrar_Mapa`, `posicionpala`, `Pantalla_Reinicio`) |
-| `PintarMapa.lst` | 3 |
-| `pala.lst` | 1 (`Fin_Juego`) |
-| `pelota.lst` | 0 — `pelota.asm` happens to be self-contained |
-| `Pantalla_Inicio.lst` | 0 — likewise |
+**`main.bin`/`main.lst`/`main.sld` are no longer committed.** `main.lst` is how you look up addresses,
+and the test harness resolves every symbol from it, so **build before you read addresses or run
+tests**. `run_all.py` does this for you.
 
-`Partida.bin` is 34 bytes of nothing. Note that a **clean** standalone build is not a safe one:
-`pelota.bin` assembles without errors but is a fragment `org`'d at `$8000` containing only the ball
-code, so loading it runs whatever those bytes decode to. **Never load any per-file `.bin`.** The only
-valid artifacts are `main.bin` / `main.lst` / `main.sld`.
-
-**Regression signal:** the historical cause was `tasks.json` building `${file}` — whatever file had
-editor focus — and `launch.json` loading `${fileBasenameNoExtension}`. Both are **already fixed** on
-disk (verified: they hardcode `main.asm` / `main.sld` / `main.bin`), so AUDIT.md §1's description of
-this is stale. **If `${file}` or `${fileBasenameNoExtension}` ever reappears in either file, the bug
+**Regression signal:** the historical cause of wrong-binary debugging was `tasks.json` building
+`${file}` — whatever file had editor focus — and `launch.json` loading `${fileBasenameNoExtension}`.
+Both are fixed. **If `${file}` or `${fileBasenameNoExtension}` ever reappears in either file, the bug
 is back.** → **failure-patterns** §7
-
-`main.lst` is also how you look up addresses — symbol locations, instruction encodings, the map
-terminator addresses in **map-data-format** §6. Keep it around.
 
 ## 4. Running
 
 **Step 1 — start ZEsarUX with the remote protocol enabled**, in its own terminal:
 
 ```
-/opt/homebrew/Caskroom/zesarux/13.0/ZEsarUX.app/Contents/MacOS/zesarux --enable-remoteprotocol
+/opt/homebrew/Caskroom/zesarux/13.0/ZEsarUX.app/Contents/MacOS/zesarux \
+    --enable-remoteprotocol --remoteprotocol-port 10000 --machine 48k &
 ```
 
-`--enable-remoteprotocol` is the documented flag (DeZog's own `Usage.md` uses exactly
-`./zesarux --enable-remoteprotocol &`). ZRCP listens on **port 10000**, which is what
-`.vscode/launch.json:9` expects. Leave it running — DeZog connects to it, it does not launch it.
-
-The target is a 48K Spectrum, which is ZEsarUX's default machine, so no `--machine` flag is needed.
-If your ZEsarUX has a saved config that boots something else, add `--machine 48k`.
+ZRCP listens on **port 10000**, which is what `.vscode/launch.json` expects. Leave it running — DeZog
+connects to it, it does not launch it. 48K is ZEsarUX's default machine, but pass `--machine 48k`
+anyway in case a saved config says otherwise.
 
 **Step 2 — launch from VS Code.** Press **F5** with the **`Arkanoid (ZEsarUX)`** configuration
-selected. That runs the build task, connects over ZRCP, loads `main.bin` at `$8000`, and starts at
-`execAddress` `$8000` (`launch.json:8-17`).
+selected. That runs the build task, connects over ZRCP, loads `main.bin` at `$8000` and starts there.
 
 **Step 3 — what a working run looks like:**
 
 1. RLE title screen decodes into the bitmap.
 2. `Quieres Jugar (S/N)?` prompt on row 23, with a flashing yellow cell.
 3. Press **S** → screen clears, border drawn, bricks painted, paddle on row 23, ball moving.
+4. The ball bounces off bricks and destroys them, two cells at a time.
+5. Miss the ball and you lose one of three lives; lose all three and you get **GAME OVER**.
+6. Clear every destructible brick and the level advances by itself.
 
 ### Failure modes
 
 | Symptom | Cause |
 |---|---|
 | Connection refused / DeZog hangs connecting | ZEsarUX not running, or not started with `--enable-remoteprotocol`, or not on port 10000 |
+| `close-all-menus` / `enter-cpu-step` return errors; the CPU sits frozen at one PC; keys have no effect | **ZEsarUX is wedged with a menu open.** Nothing you did in the game causes this. Restart it: `pkill -f 'zesarux --enable-remoteprotocol'`. This is the single most common way to waste an hour here — see §7 |
 | Blank or garbage screen, immediate crash | Stale or wrong binary — rebuild; confirm you built `main.asm` (§3) |
-| Nothing happens at all | Loaded a per-file `.bin` (§3) |
-| Game freezes, ball and paddle both stop | **Known bug**, not yours: you are holding **S** or **G** (`pala.asm:54-56`). Release the key. → **timing-and-frame-loop** §4 |
-| Everything runs far too fast | Emulator not at 3.5 MHz. All pacing is busy-wait. → **timing-and-frame-loop** §8 |
+| Everything runs far too fast | Emulator not at 3.5 MHz. All pacing is busy-wait → **timing-and-frame-loop** §8 |
 
 ### Keyboard reference
 
 | Key | Effect |
 |---|---|
 | **A** / **D** | Move paddle left / right, one cell per frame |
-| **F** | Advance to next level — **debug hook**, the only level advance that exists (`pala.asm:44-48`) |
 | **S** | "Yes" at menu prompts |
-| **N** | "No" — **does not actually quit.** `FinDelJuego` falls through into `CalcularAtributo` (`mensaje_inicio.asm:48`→`52`) and silently resumes polling. → **failure-patterns** §12 |
-| **S** or **G** during play | **Freezes the game** until released (known bug) |
+| **N** | "No" — shows the goodbye screen and **now genuinely stops** |
+| **F** | Nothing. The level-advance debug hook is **retired**; levels advance on their own |
+| **S** or **G** during play | Nothing. They **no longer freeze the game** |
 
-## 5. Lightweight verification: DeZog comment directives
+## 5. The automated suites
 
-This is the closest thing to a test harness that exists today.
+`tests/` drives ZEsarUX over ZRCP directly — no VS Code, no DeZog, no human at the keyboard. Start
+ZEsarUX as in §4, then:
 
-### First: fix the typo
-
-`main.asm:2` reads:
-
-```asm
-	SLDOPT COMMENT WPMEM, LOGPOINT, ASSETION
+```
+python3 tests/run_all.py                 # build + every suite
+python3 tests/run_all.py test_colisiones # just one
 ```
 
-**`ASSETION` is a misspelling of `ASSERTION`.** DeZog's documentation gives the correct line as
-`SLDOPT COMMENT WPMEM, LOGPOINT, ASSERTION`, and notes that if the `SLDOPT` info is missing,
-**sjasmplus strips those comments out of the SLD file entirely**. So assertions are currently not
-enabled at all — and grep confirms there is not a single `WPMEM`, `LOGPOINT` or `ASSERTION` comment
-anywhere in the sources, so nothing has ever exercised it.
+`run_all.py` builds first and refuses to run anything if the build is not clean.
 
-**Fixing that one word is the cheapest possible improvement to this project's testability.** This
-skill documents it; it does not make the change.
+| Suite | Covers |
+|---|---|
+| `test_pelota.py` | `classify_cell`'s truth table and `IX` preservation; wall geometry confining the ball to rows 1-22 / columns 1-30; fractional velocity never moving more than one cell per axis per frame; and the headline check — **the attribute file is byte-identical after 200 completed frames on an empty field** |
+| `test_colisiones.py` | Byte 0 of all four maps reaching `bricks_left`; both cells of a brick clearing with exactly one decrement, for odd and even columns; colour-8 bricks bouncing without being destroyed or counted; vertical/horizontal/diagonal resolution including two bricks in one frame; every entry of the rebound table and its two invariants |
+| `test_juego.py` | `teclado` dispatch, and that S/G/F **return instead of freezing**; no `call Fin_Juego` left in `pala.asm`; `reset_round`/`reset_game` byte by byte; the ball-lost flag; and that `FinDelJuego` stops instead of falling through |
+| `checklist.py` | §6 below, end to end on a live game — plus two **SP-stability guards**, one per route out of the game, that catch any `CALL` to a routine that never returns |
 
-### What actually works on ZEsarUX
+Two properties make this testable at all: **the attribute file at `$5800` IS the playfield**, so
+768 bytes is the whole game state; and **`set-ui-io-ports` sets the keyboard matrix**, which is
+exactly what `teclado` polls.
 
-From DeZog 3.7.4's remote-capability table — **this matters, because the project uses ZEsarUX, not
-zsim:**
+`tests/README.md` documents the harness gotchas. The two that cost the most time:
+
+- **ZRCP stops the emulated CPU whenever it receives a command** (`run`'s help lists "data sent" as a
+  stopping event), so you cannot free-run and poll for a result — the polling starves the machine.
+  Drive the CPU with `run N` from inside cpu-step mode.
+- **`run N` runs N opcodes at emulated speed and knows nothing about where you wanted to stop**, so a
+  large limit costs real wall-clock time. And **`run 1` advances nothing**; `cpu-step` is the exact
+  single-step.
+
+## 6. The manual verification protocol
+
+`checklist.py` automates this list. Run it. The list is kept here because it is also what you check by
+eye when something looks wrong.
+
+### Every change, without exception
+
+- [ ] `./build.sh` is **0 errors, 0 warnings**.
+- [ ] `compiled: N lines` moved by roughly what you added (baseline **1500**).
+- [ ] `python3 tests/run_all.py` says **EVERY SUITE PASSED**.
+- [ ] The game still boots to the title screen, prompt, and a playable board.
+
+### Behaviour that should hold
+
+| Behaviour | Why |
+|---|---|
+| The ball leaves **no trail** through bricks or border | Erase-restore. The clearest single signal that the ball code is sound |
+| Destroyed bricks clear **both** cells | A brick is 2 cells wide; an odd count of lit brick cells means a half-destroyed brick |
+| `bricks_left × 2` equals the lit brick cells | The counter and the display cannot drift apart |
+| The ball never occupies row 0, row 23, column 0 or column 31 | It bounces one cell early, which is what stops the border eroding |
+| The rebound direction varies with **where** on the paddle it hit | Without this, levels are completable or not before the player touches a key |
+| Losing all lives reaches **GAME OVER**, not the completion screen | They are different events |
+| SP is identical after every restart and after every completed run | Nothing may `CALL` a routine that does not return. Sample at a fixed call depth (the GAME OVER key-wait) — mid-frame readings are noise |
+
+### Known remaining quirks — do NOT report these as regressions
+
+| Behaviour | Why |
+|---|---|
+| `map2`'s indestructible bricks are **invisible** | Colour 8 → `$40`, bright black on black. Pre-existing rendering bug → **map-data-format** §3 |
+| Ball flickers (~27% off-duty) and the display tears | Structural to the busy-wait model → **timing-and-frame-loop** §7 |
+| The top border writes one cell too many, into row 1 column 0 | `tablero.asm`; harmless, the cell is already border colour |
+| `call Pala_Juego` in `PintarMapa.asm` is unreachable | Dead code sitting after an unconditional `jr` |
+| Paddle movement speed varies slightly frame to frame | `teclado`'s delay counter depends on how fast the key was detected → **timing-and-frame-loop** §4 |
+
+### Collision or physics change
+
+- [ ] Empty-field erase-restore still byte-identical over 200 frames.
+- [ ] Both cells of each brick still clear together; counter decrements exactly once per brick.
+- [ ] Colour-8 bricks still bounce without being destroyed (test on `map2` — they are invisible, so
+      watch for the bounce, not the brick).
+- [ ] Rebound still varies across the paddle; row velocity never zero; no component over `$0100`.
+- [ ] Counter reaches exactly zero — not negative, not stuck at 1.
+
+### Map change
+
+- [ ] All levels render; step through every one.
+- [ ] Bricks start at column **1** and no row overruns column **30** (max 15 entries/row).
+- [ ] Byte 0 matches the destructible-brick count exactly, or the level never completes.
+- [ ] Rows land where you specified; nothing overlaps the paddle row 23 or the top border row 0.
+- [ ] After the last level, the "La partida ha finalizado" screen appears rather than garbage.
+
+## 7. When ZEsarUX wedges
+
+Worth its own section, because the symptoms look like a bug in the game and are not.
+
+If ZEsarUX gets into a state with a menu open, then: `close-all-menus` answers
+`ERROR. Can not close all menus`, `enter-cpu-step` answers `Can not enter cpu step mode. You can try
+closing the menu`, **`set-ui-io-ports` stores values that never reach the emulated ULA** (so the game
+appears to ignore every key), and the CPU stops advancing — `get-registers` returns the same PC every
+time.
+
+There is no way to recover over ZRCP. Kill it and start again:
+
+```
+pkill -f 'zesarux --enable-remoteprotocol'
+```
+
+`tests/unit.py` detects this at construction and raises `NotHealthy` with that command, rather than
+letting a suite fail in a confusing way.
+
+**A healthy instance reads the keyboard correctly**, and it is worth knowing what correct looks like,
+because the values are not what the code originally assumed. An idle half-row on `$FDFE` reads
+**`$1F`**, not `$FF` — bits 5-7 are not keyboard bits and do not read as 1. Pressed keys clear their
+bit: S → `$1D`, A → `$1E`, D → `$1B`, F → `$17`, G → `$0F`. Any code that compares the **whole port
+byte** against `$FF` will therefore never match. That was a real defect in `SoltarTecla` and it hung
+the menu so the game could not be started at all. → **failure-patterns** §13
+
+## 8. DeZog comment directives
+
+`main.asm:2` reads `SLDOPT COMMENT WPMEM, LOGPOINT, ASSERTION`. **It said `ASSETION` for twenty
+months**, and sjasmplus strips those comments out of the SLD file entirely when the `SLDOPT` info is
+missing — so the directives were silently disabled the whole time. Nobody noticed, because there are
+still no `WPMEM`/`LOGPOINT`/`ASSERTION` comments anywhere in the sources, so nothing ever exercised
+it. A misspelled directive fails by doing nothing, which is the worst way to fail.
+
+The spelling is now correct, so adding such a comment will actually take effect. Nothing depends on
+it — `tests/` is the regression suite and runs outside a debug session — but it is available:
 
 | Directive | zsim | **ZEsarUX** |
 |---|---|---|
 | `WPMEM` (watchpoints) | yes | **yes** — 16-bit addresses only |
-| `ASSERTION` | yes | **yes**, per the table |
+| `ASSERTION` | yes | **documentation contradicts itself** — the capability table says yes, a note in `Usage.md` says no. Confirm empirically |
 | `LOGPOINT` | yes | **no** |
 
-Three consequences you need before you plan a debugging session:
+`${Remote.tStates}` and `${Remote.cpuFrequency}` are **zsim-only**, which is a real limitation given
+how much of this project is T-state arithmetic.
 
-- **`LOGPOINT` does not work on ZEsarUX.** Do not build a verification approach around it. If you
-  want log output you must temporarily switch the launch config to `zsim`, accepting that its timing
-  is not cycle-accurate.
-- **The documentation contradicts itself on `ASSERTION`.** The capability table says ZEsarUX supports
-  it, but a note further down (`Usage.md`, in the ASSERTION section) states "ASSERTION is not
-  available in ZEsarUX." **Unresolved — confirm empirically before relying on it**, and if it does
-  not fire, that note is the reason, not your syntax.
-- `${Remote.tStates}` and `${Remote.cpuFrequency}` are **zsim-only**. Given how much of this project
-  is T-state arithmetic (**timing-and-frame-loop** §3), that is a real limitation.
-
-### Syntax, and three examples for this codebase
-
-```
-; WPMEM [addr [, length [, access]]]        access: r, w, or rw
-; ASSERTION <expression>
-; LOGPOINT [group] text ${expression[:format]}
-```
-
-**(a) The ball stays inside the playfield** — the highest-value assertion here. Per
-**collision-and-physics** §4, the wall checks are exact-equality tests that hold only while the step
-is ±1; if that ever breaks, the ball leaves the attribute file and writes into arbitrary memory. This
-catches it immediately.
-
-`Coord` is at `$9E6E` with the **column in byte 0 and the row in byte 1**
-(**state-and-register-contracts** §1 — the declaration comment is wrong):
-
-```asm
-        ld (Coord), hl
-        ret             ; ASSERTION b@(Coord) <= 31 && b@(Coord+1) <= 23
-```
-
-> **Critical gotcha:** an ASSERTION becomes a breakpoint and is evaluated **before** the instruction
-> on its line. To check the *result* of an instruction, attach it to the **next instruction** — above,
-> the `ret` at `pelota.asm:57`, by which point `ld (Coord),hl` has run.
->
-> Attach it to a real instruction, not a comment-only line. DeZog resolves directives through the SLD
-> file, which maps source lines to addresses; a bare comment line may have no address to bind to.
-> **Unconfirmed on this setup** — if the assertion never fires, try moving it onto an instruction
-> line before assuming the expression is wrong. And see the ZEsarUX caveat above: DeZog's own docs
-> contradict themselves on whether ASSERTION works on this remote at all.
-
-**(b) Catch an unintended write to paddle state.** `POSICION` is 2 bytes at `$9AD5`. Only
-`nuevaposicion` should ever write it:
-
-```asm
-POSICION: DB 14,0       ; WPMEM, 2, w
-```
-
-The `2` covers both bytes. That matters: DeZog's docs warn that a 16-bit write (`LD (nn),HL`) only
-checks the **upper** address, so a watchpoint covering just the first byte can miss a word write
-entirely. Always cover the whole variable.
-
-**(c) Log the brick counter each frame** — useful once collision work starts and the counter from
-**collision-and-physics** §9 exists:
-
-```asm
-; LOGPOINT [BALL] bricks=${b@(bricks_left)} cell=${b@(Coord+1)},${b@(Coord)}
-```
-
-**But per the table above, this will not fire on ZEsarUX.** It is here so you know the syntax and
-know to switch remotes deliberately if you want it.
-
-### Honest limitations
-
-DeZog directives are **debugger-side breakpoints attached to source lines**. They do not run outside
-a debug session, they do not produce a pass/fail artifact, and **they are not a regression suite**.
-Also, they are read from the SLD file at debug start — **change one and you must rebuild and restart
-the debugger** before it takes effect.
-
-## 6. The manual verification protocol
-
-There is no automated test. This checklist *is* the verification, and it only works if run honestly.
-
-### Every change, without exception
-
-- [ ] Build is **0 errors, 0 warnings**.
-- [ ] `compiled: N lines` moved by roughly what you added (baseline **991**).
-- [ ] The game still boots to the title screen, prompt, and a playable board.
-
-### Known-bad baseline — do NOT report these as regressions
-
-> **These are code-derived predictions, not observations.** AUDIT.md §5 is explicit that *"none of it
-> has been observed running, because no test procedure exists"*, and that is still true of this whole
-> table — every entry was derived by reading source. **Check them, do not assume them.** If one does
-> not reproduce, the analysis is wrong and that is worth knowing; if you see a symptom that is not
-> here, do not force it onto the nearest row.
-
-Confirm these are *unchanged*, not fixed, unless fixing them was your task:
-
-| Behaviour | Why |
-|---|---|
-| Ball erases a trail through bricks and the border | The erase writes 0 with no restore (`pelota.asm:10`). → **memory-map-and-playfield** §2 |
-| Bricks "disappear" when the ball passes through | Same cause. **This is not collision working** |
-| Ball cannot be lost; floor always bounces | `pelota.asm:15-21` |
-| `map2`'s indestructible bricks are invisible | Colour 8 → `$40`, bright black on black. → **map-data-format** §3 |
-| Levels advance only on **F** | Debug hook. → **failure-patterns** §4 |
-| Holding **S** or **G** freezes the game | `pala.asm:54-56` |
-| Pressing **N** does not quit | `mensaje_inicio.asm:48`→`52` |
-| Ball flickers (~27% off-duty) and display tears | Structural to the busy-wait model. → **timing-and-frame-loop** §7 |
-| Second game starts with ball/paddle where the last ended | No reset routine. → **state-and-register-contracts** §5 |
-
-### Paddle change
-
-- [ ] A and D move the paddle exactly **one cell per frame**.
-- [ ] Paddle stays within columns **1-24** (7 cells spanning 1-30); it never overwrites the border at
-      column 0 or 31.
-- [ ] No trail left behind — the old position is fully erased each frame.
-- [ ] Held key repeats smoothly; released key stops it.
-
-### Ball change
-
-- [ ] Ball advances exactly **one cell per frame** (count against a wall bounce).
-- [ ] Bounces off all four edges and keeps moving.
-- [ ] **Never leaves the attribute area** — no corruption elsewhere on screen, no crash. Use
-      assertion (a) above.
-- [ ] Speed feels unchanged unless you meant to change it — and if you did, check the *paddle* too;
-      they are coupled. → **timing-and-frame-loop** §5
-
-### Map change
-
-- [ ] All levels render; step through every one with **F** (or with whatever replaced it, once
-      completion detection has landed and the F key is retired).
-- [ ] Bricks start at column **1** and no row overruns column **30** (max 15 entries/row).
-- [ ] Each brick is 2 cells wide.
-- [ ] Rows land where you specified; nothing overlaps the paddle row 23 or the top border row 0.
-- [ ] After the last level, the "La partida ha finalizado" screen appears rather than garbage —
-      that path is order-sensitive. → **map-data-format** §8
-
-### Collision change (once that work starts)
-
-- [ ] **Erase-restore first**: the ball leaves **no trail** through bricks or border. This is the
-      single clearest pass/fail signal that step 1 landed.
-- [ ] Ball bounces off bricks and destroys them; **both cells** of each brick clear together.
-- [ ] Colour-8 bricks bounce the ball and are **not** destroyed (test on `map2` — they are invisible,
-      so watch for the bounce, not the brick).
-- [ ] Ball bounces off the paddle, and the rebound direction varies with **where** on the paddle it
-      hit.
-- [ ] Ball is lost when the paddle misses; lives decrement; a fresh ball is served.
-- [ ] At zero lives, the game-over path is reached — and it is **distinct** from the level-completion
-      screen.
-- [ ] Level completes automatically when the last destructible brick is destroyed, with no F press.
-- [ ] Counter reaches exactly zero — not negative, not stuck at 1. This is where an off-by-one in the
-      2-cells-per-brick logic shows up.
-
-## 7. What is deliberately not here
-
-No automated tests, no CI, no golden screenshots, no scripted ZRCP harness. Building a scripted
-harness now would mean writing assertions about behaviour that has not been designed yet, so the
-sensible point to reconsider it is **once real collision and game logic exist to test against**. That
-is a judgement recorded here, not a commitment anyone has made — there is no such plan in the repo,
-the history, or AUDIT.md, so do not wait on one. Until then, verification is the protocol in §6, run
-honestly.
-
-## 8. Repo hygiene — recommendations, not requirements
-
-Every build artifact is committed and there is no `.gitignore`, which is why five of seven commits
-are dominated by thousands of lines of `.lst`/`.sld` churn. Three cheap improvements are available;
-**the decision is the maintainer's.**
-
-1. **A `.gitignore`** for `*.bin`, `*.lst`, `*.sld`. Caveat worth weighing: `main.lst` is genuinely
-   useful for looking up addresses and encodings, and several skills cite it. If it stops being
-   committed, anyone needing those numbers must build first — which is fine, as long as they know
-   that is where the numbers come from.
-2. **Delete the broken per-file artifacts** — `Partida.*`, `pelota.*`, `pala.*`, `PintarMapa.*`,
-   `mensaje_inicio.*`, `Pantalla_Inicio.*` (`.bin`/`.lst`/`.sld` only, never the `.asm`). They are
-   error-riddled standalone builds and actively dangerous to load (§3).
-3. **Delete the orphaned `plantilla.*`** — `plantilla.asm` never existed in this repo, so these three
-   files are output with no source. Also `.tmp/disasm.list`, an empty DeZog scratch file.
-   → **failure-patterns** §11
-
-None of this is required to make progress on the game. It is listed because each one removes a way to
-waste time.
+An ASSERTION becomes a breakpoint evaluated **before** the instruction on its line, so to check the
+*result* of an instruction you attach it to the **next** one. And these are debugger-side breakpoints
+read from the SLD at debug start: change one and you must rebuild and restart the debugger. **They are
+not a regression suite.** `tests/` is.

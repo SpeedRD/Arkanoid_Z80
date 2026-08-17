@@ -97,37 +97,44 @@ call Pantalla_Reinicio  ;esta pantalla funciona, se puede probar pulsando f dent
 ```
 
 — "this screen works, you can test it by pressing F inside the game". `63aa40f` removed that call
-(verified: gone from `63aa40f:main.asm`). **But the F-key handling stayed**, and it is still there at
-`pala.asm:44-48`, still the **only** way to advance a level, twenty months later.
+(verified: gone from `63aa40f:main.asm`). **But the F-key handling stayed**, and it remained the
+**only** way to advance a level for twenty months.
 
 **Why.** The hook was genuinely useful, removing it had no urgency, and no real completion detection
 ever arrived to replace it. Nothing forced the question.
 
+**Status: retired.** The F key is gone from `teclado`, and levels now advance when `bricks_left`
+reaches 0. Removing it also closed the stack leak it caused (§12) — `teclado` did
+`call Fin_Juego`, and `Fin_Juego` exits via `jr Juego`, so two return addresses were abandoned on
+every level change. `tests/test_juego.py` asserts F does nothing and that no `call Fin_Juego` survives
+in `pala.asm`.
+
 **The rule now.** **A debug hook gets a removal plan the day it is added** — a TODO at the hook, an
 issue, or a note in the skill that owns the feature. A temporary mechanism with no owner becomes
-permanent.
+permanent. Note how long this one took to remove once nothing forced the question.
 
 **How to notice.** You are adding a keypress, a hardcoded value or a shortcut "just to test", and you
-have not written down what removes it. → **collision-and-physics** §9 retires the F key.
+have not written down what removes it.
 
 ## 5. Empty stub files as intent markers
 
 **What happened.** `MapaJuego.asm` was created empty in `2532582` and deleted in `7d39c74` — verified
 by `--diff-filter=AD`: added, then deleted, **never having had any content.**
 
-`colisiones.asm` is the identical pattern one file later. Created empty in `43848fe`, `INCLUDE`d at
-`main.asm:35`, and **still 0 bytes at HEAD.**
+`colisiones.asm` was the identical pattern one file later: created empty in `43848fe`, `INCLUDE`d,
+and **still 0 bytes twenty months later**. It is now 377 lines and the largest source file in the
+tree — but it sat there as a marker of intent for the entire life of the project before that.
 
 **Why.** Creating the file feels like starting the work, and the `INCLUDE` line assembles cleanly, so
 nothing ever complains.
 
 **The rule now.** An empty included file is not progress. It costs zero bytes, produces zero errors,
-and looks like a plan.
+and looks like a plan. `MapaJuego.asm` proves the end state: added, never written, quietly deleted.
 
 **How to notice.** You are creating a file to hold work you are not about to do.
 
-**The one genuine upside:** because the `INCLUDE` already exists, collision code needs **no build
-change** — just write into `colisiones.asm`. → **assembler-conventions** §8
+**The one genuine upside, now spent:** because the `INCLUDE` already existed, the collision work
+needed no build change. → **assembler-conventions** §8
 
 ## 6. Committing known-broken work with the problem only in the message
 
@@ -163,15 +170,17 @@ focus** — with no fixed entry point. Build with `pelota.asm` focused and you g
 `pelota.bin`. `launch.json` had the matching problem with `${fileBasenameNoExtension}`, so the
 **debugger loaded the wrong binary** too.
 
-It happened repeatedly and **the wreckage is committed**: `mensaje_inicio.lst`, `Partida.lst`,
-`PintarMapa.lst` and `pala.lst` are standalone builds of INCLUDE fragments carrying 6, 4, 3 and 1
+It happened repeatedly and **the wreckage was committed**: `mensaje_inicio.lst`, `Partida.lst`,
+`PintarMapa.lst` and `pala.lst` were standalone builds of INCLUDE fragments carrying 6, 4, 3 and 1
 `error: Label not found` respectively (`PRINTAT`, `dibujar_tablero`, `Mostrar_Mapa`, `Fin_Juego`, …),
-with the unresolved `call`s assembled as `CD 00 00`. `Partida.bin` is 34 bytes of garbage.
-`pelota.lst` and `Pantalla_Inicio.lst` assemble cleanly — those two files are self-contained — but
-their `.bin`s are still fragments and must not be loaded. → **build-and-verify** §3
+with the unresolved `call`s assembled as `CD 00 00`. `Partida.bin` was 34 bytes of garbage.
+`pelota.lst` and `Pantalla_Inicio.lst` assembled cleanly — those two files were self-contained — but
+their `.bin`s were still fragments and must never have been loaded. → **build-and-verify** §3
 
-**Status: already fixed.** Verified on disk — `.vscode/tasks.json` now hardcodes `main.asm` →
-`main.lst`/`main.sld`/`main.bin`, and `.vscode/launch.json` points at fixed paths.
+**Status: fully fixed.** `.vscode/tasks.json` hardcodes `main.asm`, `.vscode/launch.json` points at
+fixed paths, `./build.sh` is the single entry point, all the broken per-file artifacts are **deleted**,
+and `.gitignore` covers `*.bin`/`*.lst`/`*.sld` so they cannot come back — with `!charset.bin`
+excepted, because that one is a source asset the build needs.
 **AUDIT.md §1 describes the pre-fix state and is stale on this point.**
 
 **The rule now.** **A build has exactly one entry point.** Every other `.asm` here is an INCLUDE
@@ -240,7 +249,7 @@ All verified present at HEAD:
 | `maxLevelsMask: EQU 3` | `Mapas.asm:15` | Grep-verified never referenced. Suggests a mask-based level wrap that does not exist. |
 | `maplist` | `Mapas.asm:14` | Read **once** at `main.asm:17`, never indexed. Looks like the level table; level advance actually walks raw map data. → **map-data-format** §7 |
 | `COORD: DB 0` | removed in `43848fe` (was `63aa40f:pala.asm:7`) | Was never read or written. |
-| `fin: jr fin` | added in `43848fe:pala.asm`, removed in `561cc23` | An infinite-loop halt that existed for one commit. **The project currently has no halt state at all.** |
+| `fin: jr fin` | added in `43848fe:pala.asm`, removed in `561cc23` | An infinite-loop halt that existed for one commit. The project then had **no halt state at all** for twenty months — which is why `FinDelJuego` had nowhere to stop. It does now: `FinDelJuego_Parada`. |
 
 **The most consequential one:** `7d39c74` deleted a commented-out block from `PintarMapa.asm` — an
 `or a / jr z, Salto_Ladrillo` zero-colour skip with register saving and a column-advance path. The
@@ -255,14 +264,16 @@ that outlived it by twenty months.
 
 ## 11. Orphaned artifacts
 
-**What happened.** `plantilla.bin`, `plantilla.lst` and `plantilla.sld` are committed, but
-**`plantilla.asm` does not exist in the repo and never did.** They are build output from the
-course-provided template, assembled once and then renamed to `main.asm`. The `.lst` still references
+**What happened.** `plantilla.bin`, `plantilla.lst` and `plantilla.sld` were committed, but
+**`plantilla.asm` never existed in the repo.** They were build output from the course-provided
+template, assembled once and then renamed to `main.asm`. The `.lst` still referenced
 `C:\UFV Tercero~Cuarto\Arquitectura\Pantalla_InicioyFinal\plantilla.asm`.
 
-`.tmp/disasm.list` is a committed empty DeZog scratch file.
+`.tmp/disasm.list` was a committed empty DeZog scratch file.
 
 **Why.** No `.gitignore`, so `git add .` swept in everything.
+
+**Status: deleted**, along with `.tmp/` and the per-file artifacts, and now ignored.
 
 **The rule now.** Build output should not be committed; if it is, it must correspond to a source file
 that exists.
@@ -272,20 +283,71 @@ committed artifact that has none. If you cannot find the `.asm` for a `.bin`, ch
 existed (`git log --all --diff-filter=A -- <name>.asm`) before assuming you are missing something.
 → **build-and-verify** §8
 
-## 12. Structural defects still live
+## 12. Structural defects — what was fixed, and what is still live
 
-Pointers only — each is owned elsewhere. Do not "discover" these as new bugs.
+**Fixed.** Listed so you do not "rediscover" them, and so a reappearance is recognisable:
 
-| Defect | Where | Owner |
+| Defect | Was | Now |
 |---|---|---|
-| `teclado` hangs while S or G is held (`jr teclado1` without `dec d`) | `pala.asm:54-56` | **timing-and-frame-loop** §4 |
-| `FinDelJuego` falls through into `CalcularAtributo`; pressing N never quits | `mensaje_inicio.asm:48`→`52` | **collision-and-physics** §8 |
-| Stack leak: `call Fin_Juego` + `jr Juego` abandons 2 return addresses per level | `pala.asm:47`, `Partida.asm:30` | **state-and-register-contracts** §4 |
-| `Pantalla_Reinicio` ends `call flujo_juego`, which never returns | `mensaje_inicio.asm:39` | **state-and-register-contracts** §4 |
-| Top border writes 32 cells from `$5801`, spilling one into row 1 col 0 | `tablero.asm:29` | harmless (the cell is already border colour) but wrong |
-| Colour-8 bricks render invisible (bright black on black) | `PintarMapa.asm:23-25` | **map-data-format** §3 |
-| `Coord` / `Vector` comments state the wrong axis order | `pelota.asm:1-2` | **state-and-register-contracts** §1 |
-| Nothing resets `Coord`/`Vector`/`POSICION` between levels or games | — | **state-and-register-contracts** §5 |
+| `teclado` froze the game while S or G was held (`jr teclado1` without `dec d`) | `pala.asm` | Falls into `teclado_sigue`, which decrements. Tested. |
+| `FinDelJuego` fell through into `CalcularAtributo`; pressing N never quit | `mensaje_inicio.asm` | Ends in `FinDelJuego_Parada`. Tested. |
+| Stack leak: `call Fin_Juego` + `jr Juego` abandoned 2 return addresses per level | `pala.asm`, `Partida.asm` | The F hook is gone; completion is checked in the frame loop with `jp`. |
+| `Pantalla_Reinicio` ended `call flujo_juego`, which never returns | `mensaje_inicio.asm` | `jp flujo_juego`. |
+| Nothing reset `Coord`/`Vector`/`POSICION` between levels or games | — | `reset_round` / `reset_game`. Tested byte by byte. |
+| `Coord` / `Vector` comments stated the wrong axis order | `pelota.asm:1-2` | Comments now describe what the code does. |
+| The ball erased whatever it flew over | `pelota.asm` | Read-back-and-restore, plus the ball is confined to rows 1-22 / columns 1-30. |
+| `flujo_juego` did `CALL Juego`, abandoning 2 bytes per game | `main.asm` | `JP Juego`. Verified first that `Partida.asm` has no `RET` at all, then measured: 2 bytes per restart before, 0 after. |
+| `ReinicioJuego` did `call Pantalla_Reinicio`, abandoning 2 bytes per completed run | `Partida.asm` | `jp Pantalla_Reinicio`. Same two-check method. It was also the **last line of the file**, so a return would have run into `pelota.asm`'s data. |
+| `SLDOPT` said `ASSETION` | `main.asm:2` | Spelled `ASSERTION`. A misspelled directive fails by doing **nothing**, so it went unnoticed for twenty months. |
+
+**Still live, deliberately:**
+
+| Defect | Where | Note |
+|---|---|---|
+| Top border writes 32 cells from `$5801`, spilling one into row 1 col 0 | `tablero.asm` | Harmless — the cell is already border colour — but wrong |
+| Colour-8 bricks render invisible (bright black on black) | `PintarMapa.asm` | → **map-data-format** §3 |
+| `call Pala_Juego` in `PintarMapa.asm` is unreachable dead code | `PintarMapa.asm` | Sits after an unconditional `jr`. Ignore it; do not "restore" it |
+
+**No known stack growth remains anywhere.** All four leaks above are closed, and `checklist.py`
+carries two SP-stability guards — one per route out of the game — that fail if any of them returns.
+→ **state-and-register-contracts** §4
+
+## 13. Assuming hardware behaviour instead of masking for it
+
+**What happened.** `SoltarTecla` and `EsperarTecla` waited for the keyboard port to read exactly
+`$FF`:
+
+```asm
+SoltarTecla:
+    in a,(c)
+    cp $FF              ; "no key pressed"
+    jr nz,SoltarTecla
+```
+
+Only bits 0-4 of that port are keyboard. Bit 6 is EAR and bits 5/7 are unused, and they do **not**
+reliably read as 1 — under ZEsarUX an idle half-row reads **`$1F`**. So the comparison never matched,
+and pressing S at the start prompt moved the program from the poll loop into `SoltarTecla`, where it
+span forever. **The game could not be started at all.**
+
+**Why nobody caught it.** It is in the one code path you must pass through before anything else
+happens, and *nothing in this project had ever been run and observed* — AUDIT.md says so in as many
+words, twice. Every defect on record was derived by reading source. Reading finds logic errors; it
+does not find "the hardware does not return what this line assumes".
+
+**The tell:** the correct idiom was already in the same codebase. `teclado` does
+`and $1F` / `cp $1F` — mask to the bits that are keys, then compare. Two routines in two files
+disagreeing about how to read the same port is a strong signal that one of them was never exercised.
+
+**The rule now.** **Mask a port read down to the bits you actually own before comparing it.** And
+when one routine reads a port differently from another, find out which one has been run.
+
+**How to notice.** You are comparing a whole `in a,(c)` byte against `$FF` or `$00`; or you are
+writing a hardware assumption you have not watched execute.
+
+**The related trap, which is not your code:** ZEsarUX itself can wedge with a menu open, and then
+`enter-cpu-step` fails, the CPU stops advancing, and **`set-ui-io-ports` stores keys that never reach
+the emulated ULA** — so the game appears to ignore all input. That looks exactly like a keyboard bug.
+Restart the emulator before believing it. → **build-and-verify** §7
 
 ## Smells to check in a diff
 
@@ -302,3 +364,6 @@ Pointers only — each is owned elsewhere. Do not "discover" these as new bugs.
 - [ ] A `call` to something that jumps back into the main loop instead of returning (§12).
 - [ ] A comment asserting a register or byte order you have not traced (§6, and `Coord` is the
       cautionary tale).
+- [ ] A whole-byte comparison on a port read, instead of masking the bits you own (§13).
+- [ ] A behavioural claim you have not watched execute. Reading source finds logic errors; it does
+      not find wrong assumptions about hardware (§13). `python3 tests/run_all.py` is cheap.

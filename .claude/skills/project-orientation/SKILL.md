@@ -10,56 +10,59 @@ description: Use when starting any work on this repo — opening an .asm file fo
 A ZX Spectrum 48K Arkanoid clone in Z80 assembly. `DEVICE ZXSPECTRUM48` and `org $8000`
 (`main.asm:1,3`) produce a **raw binary** — no tape image, no BASIC stub, no loader. The only way to
 run it is to have an emulator/debugger load `main.bin` at `$8000` and jump there. Built with
-**sjasmplus** (dialect-specific, not portable to pasmo/z80asm). Run under **ZEsarUX + DeZog over
-zrcp** (`.vscode/launch.json:5-17`, `.vscode/tasks.json:5-15`). Total source: ~975 lines across 11
-`.asm` files plus a 768-byte font blob.
+**sjasmplus** (dialect-specific, not portable to pasmo/z80asm) via `./build.sh`. Run under
+**ZEsarUX + DeZog over zrcp** (`.vscode/launch.json:5-17`, `.vscode/tasks.json:5-15`). Total source:
+~1476 lines across 11 `.asm` files plus a 768-byte font blob, and a Python test harness in `tests/`.
 
-## 2. Current state, honestly
+## 2. Current state
 
-**Working scaffolding, missing core.** These work: title screen, text/menu rendering, playfield
-border, level data, map drawing, keyboard input, paddle motion, ball motion with four-wall bounce.
+**The game is playable and finishable.** Title screen, menus, border, level data, map drawing,
+keyboard input, paddle motion, ball motion, ball↔brick and ball↔paddle collision, brick destruction,
+a paddle-relative rebound angle, a lethal floor, lives, game over, and automatic level completion all
+work — and all of it is covered by the suites in `tests/`. → **build-and-verify**
 
-These do not exist:
+What this used to say — that `colisiones.asm` was a 0-byte file, that the paddle was decorative, that
+you could not lose and levels only advanced on the F key — is **no longer true**. `colisiones.asm` is
+now the largest source file in the tree (377 lines).
 
-- **Collision detection.** `colisiones.asm` is a **0-byte file**, `INCLUDE`d at `main.asm:35`. Nothing
-  reads `POSICION` from `pelota.asm`, nothing looks up a brick. The paddle is decorative.
-- **Ball loss.** The floor bounces unconditionally (`pelota.asm:15-21`: `cp 24` → negate vector →
-  force row 22). You cannot miss.
-- **Lives, game over by losing.** No such variable exists anywhere in the sources.
-- **Win detection.** Nothing counts bricks. `Partida.asm:10` is a comment — `;mirar si fin partida` —
-  marking where it was meant to go.
-- **Real level advance.** Levels only advance when you press **F** (`pala.asm:45-48`, `bit 3,a` on
-  port `$FDFE` → `call Fin_Juego`). Per AUDIT.md §4 this is a leftover debug hook from November 2024.
+Mutable game state is **fifteen bytes**, still declared inline next to the routine that owns it:
+`POSICION` (`$9B10`, 2 B), `levelCounter` (`$9E74`, 1 B), `Coord` (`$9ECA`, 2 B), `CoordFrac`
+(`$9ECC`, 2 B), `Vector` (`$9ECE`, 4 B), `bricks_left` (`$9F51`), `lives` (`$9F52`), `ball_lost`
+(`$9F53`). Plus per-frame scratch (`NewRow`, `NewCol`, `BallSaved`, `cand_cell`, `bounce_flags`).
+There **is** now a reset routine — three, in fact: `reset_ball`, `reset_round`, `reset_game`.
+→ **state-and-register-contracts**
 
-What exists in place of a game-over is a *completion* screen: after 4 level changes `levelCounter`
-hits `CantidadNiveles` (`Partida.asm:2,27`) and `ReinicioJuego` shows "La partida ha finalizado".
-That is a different thing and must stay distinct from the game-over path you are going to add.
+### What is still deliberately absent
 
-Total mutable game state is **seven bytes**, stored inline in the code image: `POSICION` (`$9AD5`,
-2 B), `levelCounter` (`$9E3E`, 1 B), `Coord` (`$9E6E`, 2 B), `Vector` (`$9E70`, 2 B). There is no
-variable block and no reset routine.
+- **Score and an on-screen HUD.** Out of scope. Do not add them, and do not design the brick counter
+  as if a HUD will read it.
+- **Sound.** No `OUT ($FE)` anywhere; the border is never set either.
+- **Interrupts.** `di` at `main.asm:5` and never an `ei`. Busy-wait is the architecture (§4).
+- **Multi-hit bricks, power-ups, more than four levels.**
 
 ## 3. File map
 
 | File | Lines | Role | Status |
 |---|---|---|---|
-| `main.asm` | 35 | Entry at `$8000`; `di` + `ld sp,0`; title screen; `flujo_juego` loop reloads `IX` from `maplist` and `CALL Juego`; all `INCLUDE`s (26-35) | Working |
-| `Pantalla_Inicio.asm` | 293 | `Main_Pantalla` — RLE decoder writing the title bitmap to `$4000`; `RLEData` (line 34+) | Complete, self-contained |
-| `L30.3 - printat.asm` | 164 | Third-party text library (Daniel León, UFV): `PRINTAT`, `PRINTSTR`, `PRINTCHAR`, `CRtoSCREEN`, `CRtoATTR`, `INK2PAPER`, `CLEARSCR`, `CHARSET` (`incbin charset.bin`, line 162) | Complete — **shared, do not edit** |
-| `mensaje_inicio.asm` | 93 | `Pantalla_Ini`, `Pantalla_Reinicio`, `FinDelJuego`, plus `CalcularAtributo` (52) and `EsperarTecla`/`LeerTecla`/`SoltarTecla` | Menus work; `FinDelJuego` falls through into `CalcularAtributo` (48→52); `Pantalla_Reinicio` ends `call flujo_juego` (39) which never returns |
-| `tablero.asm` | 37 | `dibujar_tablero` — clears screen, paints left/right/top border | Works; top loop runs `b,32` from `$5801` (27-29) so it spills one cell into row 1 col 0; `fin_dibujar_tablero` (38) is dead |
-| `Mapas.asm` | 82 | `maplist` (14) + `map0..map3` (20, 33, 49, 65) | Data complete. **Byte 0 of each map is the destructible-brick count** — verified 82/71/78/153 against the data. `maxLevelsMask` (15) is unused |
-| `PintarMapa.asm` | 50 | `Mostrar_Mapa` — walks the map at `IX`, paints bricks 2 cells wide from column 1 | Works, with defects: reads byte 0 into `A` (2-3) then discards it (6); colour 8 → `sla a`×3 = `$40` (23-25) = bright black on black, invisible; `call Pala_Juego` (40) is unreachable; exits with `IX` **on** the `$FF` terminator |
-| `pala.asm` | 92 | `POSICION` (1), `dibujarpala`/`dibujarpalacolor`, `teclado`, `nuevaposicion`, `esperar` | Draw and bounds are correct; `teclado` hangs on S or G (54-56) |
-| `pelota.asm` | 93 | `Coord`/`Vector` (1-2), `ball`, `PosXY` (77), `Esperar_pelota` (63) | Motion and wall bounce work; no collision of any kind; the erase at line 10 writes 0 over whatever was under the ball |
-| `Partida.asm` | 38 | `Juego` + `Pala_Juego` frame loop (4-15), `Fin_Juego` (19), `ReinicioJuego` (32) | Loop works; no end-of-round detection (10); `Fin_Juego` reachable only from `pala.asm:47` |
-| `colisiones.asm` | **0** | Intended home of ball↔paddle and ball↔brick | **Empty.** The single largest gap |
-| `charset.bin` | — | 768-byte 8×8 font, 96 chars | Binary asset |
+| `main.asm` | 35 | Entry at `$8000`; `di` + `ld sp,0`; title screen; `flujo_juego` reloads `IX` from `maplist` and `JP Juego` (never `CALL` — `Juego` does not return); all `INCLUDE`s | Working |
+| `Pantalla_Inicio.asm` | 293 | `Main_Pantalla` — RLE decoder writing the title bitmap to `$4000` | Complete, self-contained |
+| `L30.3 - printat.asm` | 163 | Third-party text library (Daniel León, UFV) | Complete — **shared, do not edit** |
+| `mensaje_inicio.asm` | 133 | `Pantalla_Ini`, `Pantalla_Reinicio`, **`Pantalla_GameOver`**, `FinDelJuego`, `CalcularAtributo`, `EsperarTecla`/`LeerTecla`/`SoltarTecla` | Working. All three historical defects here are fixed — see §6 |
+| `tablero.asm` | 37 | `dibujar_tablero` — clears screen, paints left/right/top border | Works; top loop still runs `b,32` from `$5801` so it spills one cell into row 1 col 0 (harmless); `fin_dibujar_tablero` is dead |
+| `Mapas.asm` | 82 | `maplist` + `map0..map3` | Data complete. **Byte 0 of each map is the destructible-brick count** — 82/71/78/153. `maxLevelsMask` is unused |
+| `PintarMapa.asm` | 54 | `Mostrar_Mapa` — walks the map at `IX`, paints bricks 2 cells wide from column 1 | Works. **Now stores byte 0 into `bricks_left`** instead of discarding it. Colour 8 still renders invisible; `call Pala_Juego` is still unreachable dead code |
+| `pala.asm` | 98 | `POSICION`, `dibujarpala`/`dibujarpalacolor`, `teclado`, `nuevaposicion`, `esperar` | Working. **The S/G hang is fixed and the F-key hook is gone** |
+| `pelota.asm` | 123 | `Coord`/`CoordFrac`/`Vector`, `ball`, `step_ball`, `PosXY`, `Esperar_pelota` | Working. Rewritten for read-back-and-restore and 8.8 fixed-point motion |
+| `Partida.asm` | 81 | `Juego` + `Pala_Juego` frame loop, `Ball_Lost`, `Game_Over`, `Fin_Juego`, `ReinicioJuego` | Working. Completion and ball-loss are checked in the frame loop; every exit uses `jp`, never `call` |
+| `colisiones.asm` | 377 | `classify_cell`, `probe_cell`, `resolve_collisions`, `destroy_brick`, `paddle_hit`, `rebound_table`, the resets, and all the new state | Working — the core of the game |
+| `charset.bin` | — | 768-byte 8×8 font | Binary asset |
+| `tests/` | — | ZRCP-driven Python suites | `python3 tests/run_all.py` |
 
-Build artifacts: only `main.bin` / `main.lst` / `main.sld` are valid. The per-file `.bin`/`.lst`/
-`.sld` (e.g. `Partida.bin`, 34 bytes) are broken standalone builds of include-fragments, and
-`plantilla.*` is orphaned output whose `.asm` never existed in the repo. Never load any of them. →
-**build-and-verify**
+Build artifacts (`main.bin`/`main.lst`/`main.sld`) are **no longer committed** — `.gitignore` covers
+`*.bin`/`*.lst`/`*.sld`, with `!charset.bin` excepted because it is a source asset. The broken
+per-file artifacts and the orphaned `plantilla.*` are deleted. **`main.lst` is generated, and the
+test harness resolves every address from it, so build before you read addresses.**
+→ **build-and-verify**
 
 ## 4. The three governing facts
 
@@ -67,189 +70,133 @@ Internalise these before touching anything. Each has an owning skill; do not lea
 
 **1. The playfield IS the attribute file.** Everything in play — border, bricks, paddle, ball — is a
 coloured 8×8 attribute cell in `$5800-$5AFF`. There are no sprites and no background layer. The play
-area is a 32×24 character grid; motion is quantised to 8 pixels. Ball = 1 cell (`pelota.asm:8`,
-attribute `8*7`); paddle = 7 cells on row 23 (`pala.asm:2,21` — `$5B00-32` = `$5AE0` = 23×32);
-brick = 2 cells (`PintarMapa.asm:27-30`). **Consequence: erasing an entity by writing 0 destroys
-whatever was underneath it.** That is why the ball currently eats bricks and chews holes in the
-border without any collision code existing. → **memory-map-and-playfield**
+area is a 32×24 character grid. Ball = 1 cell (`$38`); paddle = 7 cells on row 23 (`$10`);
+brick = 2 cells (colour `<< 3`); border = `$0F`.
+**Consequence: erasing an entity by writing 0 would destroy whatever was underneath it.** That is why
+`ball` now reads the attribute under itself before drawing and writes that byte back on erase, and
+why the ball is confined to rows 1-22 / columns 1-30 so it never lands on the border or the paddle at
+all. → **memory-map-and-playfield**
 
 **2. `IX` is a global "current map pointer" held across the entire game loop.** Loaded at
-`main.asm:17` (`ld ix,(maplist)`), advanced through the map data by `Mostrar_Mapa`, left sitting on
-the `$FF` terminator, and then incremented past it by `Fin_Juego` (`Partida.asm:20-21`) to reach the
-next map. Any routine that clobbers `IX` corrupts level state — and `PRINTAT` uses `IX` as its string
-pointer (`printat.asm:12,20`), which is safe today only because it is never called during play.
-→ **state-and-register-contracts**
+`main.asm:17`, advanced through the map data by `Mostrar_Mapa`, left sitting on the `$FF` terminator,
+then incremented past it by `Fin_Juego` to reach the next map. Any routine that clobbers `IX`
+corrupts level state — and `PRINTAT` uses `IX` as its string pointer, which is safe only because it
+is never called during play. **Every routine in `colisiones.asm` preserves `IX`, and there is a test
+that says so.** → **state-and-register-contracts**
 
-**3. All pacing is busy-wait delay loops. This is the architecture.** `di` at `main.asm:5`; there is
-no `ei`, no `IM`, no `halt`, no ISR anywhere in the sources (grep-verified). Frame time is the sum of
-`Esperar_pelota` (`pelota.asm:63-66`, `$1100` iterations), the `teclado` poll (`pala.asm:32-43`), and
-`esperar` (`pala.asm:84-91`, `CONTADOR EQU $03FF` at `pala.asm:4`) — roughly 44 ms, about 23 fps,
-with the ball advancing one cell per frame. Everything is CPU-clock-dependent; on a faster machine
-the game runs faster. **Do not propose replacing this with an interrupt-driven frame loop.** The
-rendering rewrite (AUDIT.md §5.8) is explicitly deferred and out of scope. Work within the busy-wait
-model. → **timing-and-frame-loop**
+**3. All pacing is busy-wait delay loops. This is the architecture.** `di` at `main.asm:5`; no `ei`,
+no `IM`, no `halt`, no ISR anywhere (grep-verified). Frame time is `Esperar_pelota` + the `teclado`
+poll + `esperar` ≈ 44 ms, about 23 fps. **Do not propose replacing this with an interrupt-driven
+frame loop.** The rendering rewrite (AUDIT.md §5.8) is explicitly deferred and out of scope.
+→ **timing-and-frame-loop**
 
 ## 5. Routing table
 
 | If you are… | Read first |
 |---|---|
-| Editing any `.asm` at all | **assembler-conventions** (sjasmplus dialect, `add b` forms, `:` multi-statement lines, `INCLUDE` order at `main.asm:26-35`, Spanish-existing / English-new naming rule) |
-| Adding, reordering or editing a level | **map-data-format** (row encoding, `$FF` terminator, byte 0 = brick count, and the hard requirement that `map0..map3` stay contiguous because `Partida.asm:20-21` walks off the end of one map into the next) |
-| Changing ball or paddle speed | **timing-and-frame-loop** (two unrelated constants in two files: `pelota.asm:66` and `pala.asm:4`), then **collision-and-physics** (raising the *step size* rather than shortening the delay breaks the exact-equality wall checks at `pelota.asm:15,24,37,46`) |
-| Implementing collisions, destruction or rebound angle | **collision-and-physics**, but only after the erase fix in **memory-map-and-playfield** — collision cannot be built on top of the current erase strategy |
-| Drawing anything to the screen | **memory-map-and-playfield** (`CalcularAtributo` at `mensaje_inicio.asm:52`, `PosXY` at `pelota.asm:77`, cell↔address arithmetic) |
+| Editing any `.asm` at all | **assembler-conventions** (sjasmplus dialect, `add b` forms, `:` multi-statement lines, `INCLUDE` order, Spanish-existing / English-new naming rule) |
+| Adding, reordering or editing a level | **map-data-format** (row encoding, `$FF` terminator, byte 0 = brick count, and the hard requirement that `map0..map3` stay contiguous) |
+| Changing ball or paddle speed | **timing-and-frame-loop** (two unrelated constants in two files), then **collision-and-physics** (speed goes in the delays, never in the step size) |
+| Touching collisions, destruction, rebound angle, lives or completion | **collision-and-physics** |
+| Drawing anything to the screen | **memory-map-and-playfield** (`CalcularAtributo`, `PosXY`, cell↔address arithmetic) |
 | Adding a routine, a `call`, or touching `IX`/`HL`/`B` across a call boundary | **state-and-register-contracts** |
-| Building, running, or checking a change actually works | **build-and-verify** (fixed build of `main.asm`; ZEsarUX with `--enable-remoteprotocol`; DeZog over zrcp — **not** zsim) |
-| Debugging something weird — bricks vanishing, game freezing, level state scrambled, text not printing | **failure-patterns** first. Most "new" bugs here are one of a handful of known mechanisms |
-| Printing text or drawing menu screens | **memory-map-and-playfield** plus **failure-patterns** (`PRINTCHAR` advances the cursor with `INC (HL)` on the low byte only, `printat.asm:124-127`, so strings cannot wrap a line or cross a 256-byte screen-third boundary) |
+| Building, running, or checking a change actually works | **build-and-verify** (`./build.sh`; ZEsarUX with `--enable-remoteprotocol`; `python3 tests/run_all.py`) |
+| Debugging something weird | **failure-patterns** first |
+| Printing text or drawing menu screens | **memory-map-and-playfield** plus **failure-patterns** (`PRINTCHAR` advances the cursor on the low byte only, so strings cannot wrap a line or cross a 256-byte screen-third boundary) |
 
-## 6. Order of work
+## 6. What was built, and what it replaced
 
-Each step blocks the next. Do not reorder.
+The ordered plan this file used to carry has been executed. Recorded here because the *reasons* still
+constrain anything built next:
 
-1. **Erase-restore fix.** Before drawing an entity, read the attribute byte under it and save it;
-   write it back on erase. Today `ball` unconditionally writes 0 (`pelota.asm:10`), which is why the
-   ball paints holes through bricks and border. *Blocks everything else:* while erasure destroys the
-   playfield, "is there a brick at this cell?" has no reliable answer, so no collision test can be
-   trusted. The decided approach is read-back-and-restore; a shadow brick map in RAM is a documented
-   future fallback, not a hedge to keep open. → **memory-map-and-playfield**
+1. **Erase-restore.** `ball` reads the attribute under itself, saves it in `BallSaved`, and writes it
+   back instead of 0. Blocked everything else: while erasure destroyed the playfield, "is there a
+   brick at this cell?" had no reliable answer.
+2. **Wall bounds as range tests.** The ball is confined to rows 1-22, columns 1-30; the old
+   exact-equality tests (`cp 24`, `cp 32`) are gone, because they were only safe while the step was
+   exactly ±1 and the step is now fractional.
+3. **Ball↔brick.** `classify_cell` position-first, `destroy_brick` clearing both cells and
+   decrementing `bricks_left` once.
+4. **Ball↔paddle with a real rebound angle.** 8.8 fixed-point velocity and a 7-entry
+   `rebound_table`. This had to land *with* completion detection, not after it — see
+   **collision-and-physics** §7 for why.
+5. **Lethal floor, lives, game over.** `paddle_hit` sets `ball_lost`; the frame loop acts on it.
+   `Game_Over` is a genuinely separate path from `ReinicioJuego`'s completion screen.
+6. **Automatic completion**, and the F key retired.
 
-2. **Ball↔brick collision + destruction.** Test the target cell before moving into it, bounce, clear
-   the brick, decrement a RAM counter initialised from the map's byte 0. *Blocks:* completion
-   detection needs a count that goes down; nothing else can decrement it.
+Fixed along the way, each verified by a test rather than by reading:
 
-3. **Ball↔paddle collision with variable rebound angle.** Compare the ball cell against `POSICION`
-   (`pala.asm:1`) and the 7-cell span, and derive the new `Vector+1` from where on the paddle it hit.
-   *Blocks:* step 4 needs a paddle that can actually save the ball, and step 5 needs angle variety —
-   see the parity note below.
-
-4. **Lethal floor + lives + game over.** Replace the unconditional floor bounce (`pelota.asm:15-21`)
-   with ball loss; add a lives counter; on zero lives take a real game-over path, distinct from the
-   existing `ReinicioJuego` completion screen (`Partida.asm:32-36`). *Blocks:* step 5 — automatic
-   level completion only makes sense once losing is possible, otherwise the game is a demo that
-   advances by itself.
-
-5. **Automatic completion detection, replacing the F key.** When the brick counter from step 2 hits
-   zero, call `Fin_Juego`; delete the F-key hook at `pala.asm:44-48`. *Blocks:* nothing after it, but
-   it must not land before step 3.
-
-6. **The smaller correctness fixes**, once the core is in:
-   - The `teclado` hang — holding S or G freezes the whole game (`pala.asm:54-56`).
-     → **timing-and-frame-loop** §4
-   - `FinDelJuego` falls straight through into `CalcularAtributo` (`mensaje_inicio.asm:48` → `52`),
-     so pressing "N" never quits. Must be fixed **as part of step 4** if the game-over path reuses
-     it. → **collision-and-physics** §8
-   - The top-border off-by-one (`tablero.asm:29`) and the wrong `Coord`/`Vector` comments
-     (`pelota.asm:1-2`). → **failure-patterns** §12
-
-   Note that **resetting `Coord`/`Vector`/`POSICION` is not on this list** — it is not a cleanup. It
-   is required by step 4, because you cannot respawn a ball after a loss without it.
-   → **collision-and-physics** §8, **state-and-register-contracts** §5
-
-**This list is the summary. collision-and-physics §2 is the authoritative build order** and carries
-one step this list folds in silently: fixing the wall bounds and converting the exact-equality wall
-tests to range comparisons, which sits between steps 1 and 2 here. Use its numbering when a skill
-cites a step number.
-
-**Why rebound variety must land with or before step 5:** `Vector` is only ever `(±1,±1)`
-(`pelota.asm:2`), so every step changes row and column by exactly 1 and `row + col` parity is
-invariant — the ball occupies only one parity class of cells. That alone turns out **not** to strand
-any brick (bricks are 2 cells wide, so each spans both parities), but the deeper problem does: with a
-paddle that only mirrors, **the player has no influence on the ball's path at all**, so whether a
-level can be cleared is fixed before anyone presses a key. Ship completion detection before rebound
-variety and levels become uncompletable the moment they become completable at all.
-**collision-and-physics** §7 owns the full argument — read it there rather than relying on this
-summary.
+- **`SoltarTecla` compared the whole port byte against `$FF`** and so never matched — the game hung
+  in the menu and could not be started at all. Now masks with `and $1F` / `cp $1F`, the idiom
+  `teclado` already used. → **failure-patterns** §13
+- **`teclado` froze the game while S or G was held** (`jr teclado1` without `dec d`).
+- **`FinDelJuego` fell through into `CalcularAtributo`**, so pressing N never quit. It now stops.
+- **Nothing reset `Coord`/`Vector`/`POSICION`** between levels or games. `reset_round` and
+  `reset_game` do.
+- **`flujo_juego` reached `Juego` with `CALL`**, and **`ReinicioJuego` reached `Pantalla_Reinicio`
+  with `call`** — neither of which returns, so both abandoned a return address: 2 bytes per restart
+  and 2 bytes per completed four-level run respectively. Both are `jp` now, the unreachable
+  `jr flujo_juego` is gone, and **no known stack growth remains anywhere**. `checklist.py` carries an
+  SP-stability guard for each route.
+- **`main.asm`'s `SLDOPT` line said `ASSETION`**, which silently disabled DeZog's `WPMEM` /
+  `LOGPOINT` / `ASSERTION` comments for the life of the project. Spelled correctly now.
 
 ## 7. Spanish → English glossary
 
 Existing identifiers stay in Spanish — **never rename them**. New code uses English identifiers and
-English comments. The codebase is accepted as mixed-language going forward.
-
-Appearing as **labels/identifiers**:
+English comments; the codebase is accepted as mixed-language going forward. A routine called
+`classify_cell` sitting next to `dibujarpala` is correct.
 
 | Spanish | English | Where |
 |---|---|---|
-| `pala` | paddle | `dibujarpala`, `dibujarpalacolor`, `LONGITUDPALA`, `COLORPALA`, `Pala_Juego` |
-| `pelota` | ball | `Esperar_pelota` (`pelota.asm:63`); the routine itself is `ball` (`pelota.asm:5`) |
-| `ladrillo` | brick | `Fila_Ladrillo` (`PintarMapa.asm:19`) |
-| `tablero` | board / border frame | `dibujar_tablero` (`tablero.asm:1`) |
-| `mapa` | map | `Mostrar_Mapa` (`PintarMapa.asm:1`) |
+| `pala` | paddle | `dibujarpala`, `LONGITUDPALA`, `COLORPALA`, `Pala_Juego` |
+| `pelota` | ball | `Esperar_pelota`; the routine itself is `ball` |
+| `ladrillo` | brick | `Fila_Ladrillo` |
+| `tablero` | board / border frame | `dibujar_tablero` |
+| `mapa` | map | `Mostrar_Mapa` |
 | `juego` | game | `Juego`, `Fin_Juego`, `ReinicioJuego`, `flujo_juego`, `FinDelJuego` |
 | `dibujar` | draw | `dibujarpala`, `dibujar_tablero`, `Fin_Dibujo` |
 | `esperar` | wait | `esperar`, `Esperar_pelota`, `EsperarTecla`, `Bucle_esperar` |
-| `teclado` | keyboard | `teclado`, `teclado1`..`teclado4`, `tecladofin` (`pala.asm:32-66`) |
-| `nueva posicion` | new position | `nuevaposicion` (`pala.asm:68`), `POSICION` (`pala.asm:1`) |
-| `fin` | end | `Fin_Juego`, `Fin_Dibujo`, `FinDelJuego`, `fin` (`Pantalla_Inicio.asm:11`), `tecladofin` |
+| `teclado` | keyboard | `teclado`, `teclado1`..`teclado3`, `teclado_sigue`, `tecladofin` |
+| `nueva posicion` | new position | `nuevaposicion`, `POSICION` |
+| `fin` | end | `Fin_Juego`, `Fin_Dibujo`, `FinDelJuego`, `tecladofin` |
 | `reinicio` | restart | `ReinicioJuego`, `Pantalla_Reinicio`, `MensajeReiniciar` |
-| `pantalla` | screen | `Main_Pantalla`, `Pantalla_Ini`, `Pantalla_Reinicio` |
-| `mensaje` | message | `MensajeIniciar`, `MensajeFinal`, `MensajeFinDeJuego`, `MensajeReiniciar` |
-| `fila` | row | `Fila`, `Fila_Ladrillo` (`PintarMapa.asm:5,19`) |
-| `contador` | counter | `CONTADOR` (`pala.asm:4`) — the frame delay, *not* a game counter |
-| `longitud` | length | `LONGITUDPALA EQU 7` (`pala.asm:2`) |
-| `color` | colour | `COLORPALA` (`pala.asm:3`), `dibujarpalacolor` |
-| `nivel` | level | `CantidadNiveles` (`Partida.asm:2`); note `levelCounter` is already English |
-| `cantidad` | quantity / count | `CantidadNiveles` (`Partida.asm:2`) |
-| `izquierdo` / `derecho` | left / right | `borde_izquierdo`, `borde_derecho` (`tablero.asm:10,21`) |
-| `bucle` | loop | `bucle_principal` (`Pantalla_Inicio.asm:5`), `Bucle_esperar` (`pelota.asm:68`) |
-| `atributo` | attribute | `CalcularAtributo` (`mensaje_inicio.asm:52`) |
-| `empezar` | start | `empezar:` (`main.asm:12`) |
-| `seguir` | continue | `seguir1`..`seguir4` (`pelota.asm:23,31,45,53`) — the wall-bounce fall-through chain |
-
-Appearing only in **comments / on-screen prose**, not as identifiers:
-
-| Spanish | English | Where |
-|---|---|---|
-| `partida` | round / match | `;mirar si fin partida` (`Partida.asm:10`); "La partida ha finalizado" (`mensaje_inicio.asm:93`) |
-| `columna` | column | `; Columna = 1` (`PintarMapa.asm:10`), menu coordinate comments |
-| `limite` | limit / boundary | `; Rebotar con el limite superior` (`pelota.asm:48`) |
-| `arriba` | up / top | `; Dibujar la parte de arriba` (`tablero.asm:26`) |
-
-**Not present anywhere in the current sources** — you will meet them in AUDIT.md's history section or
-in Spanish prose, but there is no code to look up: `borrar` (erase — an old `borrarpala` existed and
-was deleted; today erasure is `dibujarpalacolor` with `c=0`, `pala.asm:10-11`), `salto` (skip/jump —
-a deleted `Salto_Ladrillo` in the map renderer), `abajo` (down), `vida` (life — no lives system
-exists at all; when you add one, name it in English).
+| `pantalla` | screen | `Main_Pantalla`, `Pantalla_Ini`, `Pantalla_Reinicio`, `Pantalla_GameOver` |
+| `mensaje` | message | `MensajeIniciar`, `MensajeFinal`, `MensajeGameOver`, `MensajeReiniciar` |
+| `fila` | row | `Fila`, `Fila_Ladrillo` |
+| `contador` | counter | `CONTADOR` — the frame delay, *not* a game counter |
+| `longitud` | length | `LONGITUDPALA EQU 7` |
+| `color` | colour | `COLORPALA`, `dibujarpalacolor` |
+| `nivel` | level | `CantidadNiveles`; note `levelCounter` is already English |
+| `izquierdo` / `derecho` | left / right | `borde_izquierdo`, `borde_derecho` |
+| `bucle` | loop | `bucle_principal`, `Bucle_esperar` |
+| `atributo` | attribute | `CalcularAtributo` |
+| `parada` | stop / halt | `FinDelJuego_Parada` |
+| `vida` | life | **now exists, and is named in English:** `lives` |
 
 ## 8. What NOT to assume
 
-- **The sibling TETRIS_Z80 project is not a reference.** It shares exactly two things with this repo:
-  the sjasmplus dialect and the `L30.3 - printat.asm` library (same course, same author). Its
-  register conventions, memory map, entity model and game mechanics do **not** apply here. Do not
-  copy patterns across.
-- **AUDIT.md §5.3's wall-bounce table is WRONG. Do not implement its "Should be" column.** It claims
-  each bounce forces the ball 2 cells in instead of 1 and so "skips a cell on every bounce". Traced
-  against `pelota.asm:11-55`, the forced values (22 / 1 / 30 / 1) are **correct mirror
-  reflections** — the detection fires on the *tentative* value, so `cp 24` matching means the ball is
-  on row 23, and forcing 22 is exactly one cell of travel with the negated delta. AUDIT's proposed
-  values (23 / 0 / 31 / 0) would each set the new position **equal to the current one**, producing
-  precisely the stutter it accuses the code of. The real defect is different: the ball is allowed
-  onto the border cells at all, which is what erases them. → **collision-and-physics** §4
-- **Do not assume AUDIT.md line numbers are current — the code wins, always.** Known divergences
-  at the time of writing: (a) AUDIT.md §2 cites `di` at `main.asm:12` and `ld sp,0` at `main.asm:13`;
-  a 7-line credits header has since been removed from the working tree, so they are now
-  **`main.asm:5` and `main.asm:6`**. (b) AUDIT.md §1 describes `.vscode/tasks.json` as building
-  `${file}` with a hardcoded Windows `sjasmplus118.exe` path and `launch.json` as a zsim config —
-  **both have already been fixed on disk**: the task now builds `main.asm` → `main.lst`/`main.sld`/
-  `main.bin` with plain `sjasmplus` (`tasks.json:5-15`) and the launch config is ZEsarUX over zrcp
-  (`launch.json:5-17`). (c) AUDIT.md §4 says `43848fe` "deleted ~124 lines and replaced them with
-  88"; the actual diffstat is **79 insertions, 115 deletions**. (d) AUDIT.md §3 lists `tablero.asm`
-  as a caller of `CalcularAtributo`; it is not — grep gives only `PintarMapa.asm:11` and
-  `mensaje_inicio.asm` itself. Verify any AUDIT.md citation before relying on it.
-- **Do not assume any behavioural claim here has been observed running.** AUDIT.md §5 states it
-  plainly and it still holds: everything about how this game *behaves* was derived by reading code,
-  not by watching it. That includes the known-bad baseline in **build-and-verify** §6. Treat those
-  as predictions to check, not facts to confirm.
-- **Do not assume there is a background layer, a sprite system, or double buffering.** There is one
-  layer: the attribute file.
-- **Do not assume the ball "destroying" bricks means collision works.** It is the erase writing 0
-  (`pelota.asm:10`). There is no bounce, no count, no logic. → **failure-patterns**
+- **AUDIT.md is now substantially historical.** It describes the pre-fix codebase. Its §5 trouble
+  spots are all addressed; its "Highest-value first steps" list has been executed. Read it for the
+  *history* and the *reasoning*, not for current behaviour. Its own corrections addendum is still
+  accurate about what it corrects.
+- **AUDIT.md §5.3's wall-bounce table was WRONG, and the point is now moot.** It claimed the bounces
+  forced the ball 2 cells in instead of 1. The forced values were correct mirrors; the real defect
+  was that the ball was allowed onto the border cells at all. That is what got fixed.
+  → **collision-and-physics** §4
+- **Do not assume AUDIT.md line numbers or addresses are current — the code wins, always.** Every
+  address moved when `colisiones.asm` grew: `POSICION` is now `$9B10` (was `$9AD5`), `Coord` `$9ECA`
+  (was `$9E6E`), and the image ends at `$A0CE` (was `$9EF2`). Resolve symbols from `main.lst`.
+- **Do not assume the ball "destroying" bricks is the erase bug.** It was, before. It is now real
+  collision code with a counter. The distinguishing test: destroyed bricks clear **both** cells and
+  `bricks_left` goes down. → **collision-and-physics**
+- **Do not assume `Vector` is two bytes of ±1.** It is now **four** bytes: two signed 8.8 words, row
+  velocity at `Vector`, column velocity at `Vector+2`. → **state-and-register-contracts** §1
+- **Do not assume an attribute value identifies an entity.** `$10` is both the paddle and a colour-2
+  brick; **`$38` is both the ball and a colour-7 brick**, and colour 7 is the commonest brick colour
+  in these maps. Classify by position. → **memory-map-and-playfield** §4
 - **Do not assume `maplist` is live.** It is read exactly once (`main.asm:17`) and never indexed
-  again; level advance walks the raw map data instead (`Partida.asm:20-21`). The `DEFW` table looks
-  load-bearing and is not. → **map-data-format**
-- **Do not assume the interrupt rewrite is on the table.** It is deferred. Busy-wait is the
-  architecture. → **timing-and-frame-loop**
-- **Do not assume `main.bin` matches whatever you just edited.** Every build artifact is committed
-  and there is no `.gitignore`. Rebuild before you draw conclusions from a run. → **build-and-verify**
-- **Score and an on-screen HUD are out of scope.** Do not add them, and do not design the brick
-  counter as if a HUD will read it.
+  again; level advance walks the raw map data. → **map-data-format**
+- **Do not assume the interrupt rewrite is on the table.** Deferred. Busy-wait is the architecture.
+- **Do not assume `main.bin` exists or matches your edit.** It is no longer committed. Build first.
+- **Score and an on-screen HUD remain out of scope.**
