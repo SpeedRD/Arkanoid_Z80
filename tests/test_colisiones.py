@@ -10,7 +10,7 @@ fails = []
 
 ONE = 256           # 1.00 cell/frame in 8.8 fixed point
 BRICK = 0x38        # colour 7 << 3
-HARD = 0x40         # colour 8 << 3 -- indestructible, and invisible
+HARD = 0x78         # colour 8's rendered attribute -- BRIGHT, paper 7, ink 0; indestructible
 BORDERC = 0x0F
 
 
@@ -41,6 +41,30 @@ for name, want in (("map0", 82), ("map1", 71), ("map2", 78), ("map3", 153)):
     u.poke(L["bricks_left"], [0])
     u.call("Mostrar_Mapa", regs={"IX": L[name]})
     check(f"{name} byte 0", bricks_left(), want)
+
+print("\nMostrar_Mapa's colour shift never paints an invisible or degenerate attribute")
+# Free RAM, well below TRAP/STACK (unit.py) and above the loaded image -- a scratch
+# one-row, one-entry map: [count, Y, entries, colour, $FF].
+SCRATCH = 0xFD00
+attrs_by_colour = {}
+for colour in range(9):
+    blank_playfield()
+    u.poke(SCRATCH, [1, 5, 1, colour, 0xFF])
+    u.call("Mostrar_Mapa", regs={"IX": SCRATCH})
+    attrs_by_colour[colour] = u.cell(5, 1)
+
+for colour in range(1, 9):
+    attr = attrs_by_colour[colour]
+    paper = (attr >> 3) & 7
+    check(f"colour {colour} attribute (${attr:02X}) has a non-black paper (visible)",
+          paper != 0, True)
+
+check("colour 8 no longer renders as the old invisible $40",
+      attrs_by_colour[8] != 0x40, True)
+check("colour 8's attribute is distinct from every destructible colour's (1-7)",
+      attrs_by_colour[8] not in [attrs_by_colour[c] for c in range(1, 8)], True)
+check("colour 0 (no brick) is still unpainted -- unaffected by the colour-8 fix",
+      attrs_by_colour[0], 0x00)
 
 print("\ndestroy_brick clears BOTH cells and counts the brick once")
 neuter_delay()

@@ -56,7 +56,7 @@ data is internally consistent.)
 
 ## 3. Colour → attribute, and two rendering consequences
 
-`Mostrar_Mapa` shifts the colour left three times to move it into the PAPER bits
+`Mostrar_Mapa` shifts colours 1-7 left three times to move them into the PAPER bits
 (`PintarMapa.asm:27-29`):
 
 ```
@@ -65,13 +65,29 @@ sla a
 sla a          ; A = colour << 3
 ```
 
-**Consequence (a): colour 8 is invisible.** `8 << 3` = `$40` — BRIGHT set, PAPER 0, INK 0. Bright
-black on black. `map2`'s four indestructible bricks are drawn and **cannot be seen**. This is a real
-bug and it predates you; do not report it as a regression.
+**Consequence (a): colour 8 used to be invisible — fixed.** `8 << 3` = `$40` — BRIGHT set, PAPER 0,
+INK 0. Bright black on black. `map2`'s four indestructible bricks were drawn and **could not be
+seen**. Paper is only 3 bits wide, so colour 8 can never fit the same `colour << 3` formula as 1-7 —
+it necessarily overflows into the BRIGHT bit, and PAPER 0 is black regardless of BRIGHT or INK, so no
+value of that formula could ever make it visible.
 
-They do still work as gameplay: `classify_cell` returns `CELL_HARD` for `$40`, so the ball bounces
-off them and they are never destroyed or counted. They are simply invisible while doing it, which
-means a player has no way to know why the ball bounced off an empty-looking cell.
+`PintarMapa.asm` now special-cases colour 8 (`Fila_Ladrillo`/`Color_Indestructible`,
+`PintarMapa.asm:23-34`): instead of shifting, it loads the attribute `$78` directly — BRIGHT set,
+PAPER 7 (white), INK 0. Same paper-only convention as colours 1-7 (still no reliance on INK), still
+distinct from every one of their attributes (none of `$08..$38` has the BRIGHT bit set), and visible.
+
+**This value is load-bearing in `colisiones.asm` too, not just cosmetic.** `classify_cell`
+(`colisiones.asm`) has no separate brick registry — the attribute byte painted on screen *is* what it
+reads back to classify a cell — so its `CELL_HARD` check is `cp $78`, matching this exactly. If you
+ever change what colour 8 renders as, `classify_cell`'s comparison must change with it, or colour-8
+bricks silently misclassify as ordinary destructible ones (`CELL_BRICK`) and `bricks_left` decrements
+for a brick the map's byte-0 count didn't budget for — the level then completes with indestructible
+bricks still standing, or never completes at all. `tests/test_colisiones.py` and `tests/test_pelota.py`
+hardcode `$78` for the same reason; `tests/ark.py`'s board renderer keys its `*` display character off
+it too.
+
+They still work as gameplay, as before: `classify_cell` returns `CELL_HARD` for the indestructible
+attribute, so the ball bounces off them and they are never destroyed or counted — now visibly.
 
 **Consequence (b): empty and erased are indistinguishable.** Colour 0 shifts to `$00`, and
 `Mostrar_Mapa` *paints* it rather than skipping the cell — so an empty map cell and a destroyed brick
@@ -231,7 +247,8 @@ before increment — and the game reads `levelCounter` and executable code as a 
 - [ ] Bump `CantidadNiveles` (`Partida.asm:2`) to match the number of maps. **Both directions of
       mismatch are bugs:** too low and the new level is never reached; too high and `Fin_Juego` walks
       `IX` past the last map into `levelCounter` and executable code before the `cp` catches it (§8).
-- [ ] Avoid colour 8 unless you intend invisible bricks (§3a).
+- [ ] Colour 8 now renders visibly (bright white, `$78` — §3a) and is still indestructible. Use it
+      freely for indestructible bricks; just don't count it in byte 0 (§2).
 - [ ] Check the level is actually completable. This is much less fragile than it was: the paddle now
       gives a **variable rebound angle**, so the trajectory is player-controlled rather than a fixed
       property of the map. The tests prove the mechanism, **not** that your geometry is reachable.

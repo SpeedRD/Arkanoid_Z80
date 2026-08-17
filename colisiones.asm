@@ -13,7 +13,7 @@
 CELL_EMPTY      EQU 0       ; nothing there
 CELL_BORDER     EQU 1       ; the frame drawn by dibujar_tablero
 CELL_BRICK      EQU 2       ; destructible, colours 1-7
-CELL_HARD       EQU 3       ; colour 8, indestructible (and invisible: $40)
+CELL_HARD       EQU 3       ; colour 8, indestructible (rendered as $78 -- PintarMapa.asm)
 CELL_PADDLEROW  EQU 4       ; row 23, where the paddle lives
 
 INITIAL_LIVES   EQU 3
@@ -154,7 +154,7 @@ classify_cell:
         ld a, (hl)
         or a
         ret z                           ; A = 0 = CELL_EMPTY
-        cp $40                          ; colour 8 << 3 -- bright black on black
+        cp $78                          ; colour 8's rendered attribute -- PintarMapa.asm
         jr z, cc_hard
         ld a, CELL_BRICK
         ret

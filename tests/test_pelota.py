@@ -70,8 +70,8 @@ u.set_cell(10, 10, 0x38)                    # colour 7 brick -- same byte as the
 check("colour-7 brick ($38)", NAMES[classify(10, 10)], "BRICK")
 u.set_cell(10, 10, 0x10)                    # colour 2 brick -- same byte as the paddle
 check("colour-2 brick ($10) off row 23", NAMES[classify(10, 10)], "BRICK")
-u.set_cell(10, 10, 0x40)
-check("colour-8 brick ($40) is indestructible", NAMES[classify(10, 10)], "HARD")
+u.set_cell(10, 10, 0x78)
+check("colour-8 brick ($78) is indestructible", NAMES[classify(10, 10)], "HARD")
 u.set_cell(10, 10, 0x00)
 
 print("\nclassify_cell returns the attribute address in HL")

@@ -24,14 +24,26 @@ Fila_Ladrillo:
     ld a, (IX)  ; Leemos color
     INC IX
 
+    cp 8
+    jr z, Color_Indestructible
+
     sla a       ; Multiplicamos por 8
     sla a
     sla a
-    
+    jr Pintar_Atributo
+
+Color_Indestructible:
+    ; Colour 8 << 3 would be $40 (BRIGHT set, paper 0, ink 0) -- bright black on
+    ; black, invisible. $78 (BRIGHT, paper 7, ink 0) keeps the same paper-only
+    ; convention as colours 1-7 but stays visible, and matches classify_cell's
+    ; CELL_HARD check in colisiones.asm -- change one, change both.
+    ld a, $78
+
+Pintar_Atributo:
     ld (hl), a
     INC HL
     LD (HL), A
-    INC HL      
+    INC HL
 
     DJNZ Fila_Ladrillo    ; Sigue hasta que termine la fila
 

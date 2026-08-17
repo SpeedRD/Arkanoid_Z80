@@ -69,6 +69,7 @@ ROWS = [
 BORDER = 0x0F           # tablero.asm  1*8+7 -- blue paper, white ink
 PADDLE = 0x10           # pala.asm     COLORPALA = 2*8 -- red paper
 BALL = 0x38             # pelota.asm   8*7 -- white paper
+HARD = 0x78             # PintarMapa.asm  colour 8 -- bright white paper, indestructible
 EMPTY = 0x00
 
 ATTRS = 0x5800
@@ -213,8 +214,8 @@ class Z:
     def board(self, at=None, ball=None):
         """The attribute file as 24 rows of 32 cells.
 
-        '.' empty   '#' border   '=' paddle   'O' ball   '*' invisible
-        colour-8 brick   otherwise the brick's PAPER colour digit 1-7.
+        '.' empty   '#' border   '=' paddle   'O' ball   '*' colour-8
+        (indestructible) brick   otherwise the brick's PAPER colour digit 1-7.
 
         The ball is located by `ball` (row, col) rather than by its attribute
         value, because $38 is BOTH the ball and a colour-7 brick -- and
@@ -233,7 +234,7 @@ class Z:
                     row += "."
                 elif v == BORDER:
                     row += "#"
-                elif v == 0x40:            # colour 8 << 3: bright black on black
+                elif v == HARD:
                     row += "*"
                 elif v == PADDLE and r == 23:
                     row += "="
