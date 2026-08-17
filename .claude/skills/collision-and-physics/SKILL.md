@@ -10,7 +10,7 @@ it. It used to be forward-looking design guidance for an empty `colisiones.asm`;
 
 ## 1. Where the game is now
 
-`colisiones.asm` is 377 lines and holds the core of the game: cell classification, bounce resolution,
+`colisiones.asm` is 408 lines and holds the core of the game: cell classification, bounce resolution,
 brick destruction, the paddle rebound angle, the lives/loss path, and the three reset routines.
 `pelota.asm` owns the ball's motion and its draw/erase. Everything below is covered by
 `tests/test_pelota.py` and `tests/test_colisiones.py`.
@@ -62,13 +62,31 @@ that representation at all.
 The whole part and the fraction sit in `H` and `L` of one register pair, so a step is just
 `add hl,de` with a two's-complement `DE`, and the new cell is `H`.
 
-**Two hard invariants, both asserted in the tests:**
+**Three hard invariants, all asserted in the tests:**
 
 - **`|velocity| ≤ $0100` on each axis** — one cell per frame. Exceed it and the ball skips cells: a
   ball stepping from column 10 to 12 never occupies 11, so it passes straight through a brick there
   without colliding.
 - **The row velocity must never reach 0.** A ball travelling purely horizontally never comes back to
   the paddle and the game live-locks.
+- **The velocity MAGNITUDE must be the same everywhere — `|v| = 256`.** A bounce changes *direction*,
+  never *speed*. This applies to the serve (`reset_ball`), the inline `Vector` declaration in
+  `pelota.asm`, and every entry of `rebound_table`. Wall and brick bounces only negate a component,
+  so they preserve whatever magnitude they are handed.
+
+> **This third invariant was missing from this document, and that omission is what caused the bug.**
+> The original design was written up with the first two only. The rebound table was then built to
+> satisfy exactly those — every component ≤ 256, every row velocity non-zero — while quietly ranging
+> from `|v|` 250 to 286, and the ball was served at `(-256,+256)`, `|v|` = **362**. So the ball
+> launched 41% faster than any rebound could ever return it and dropped to walking pace for good on
+> first contact with the paddle. Players described it as "erratic, inconsistent speed". Nothing was
+> wrong with the fixed-point arithmetic; the *values* were wrong, in a way the written design did not
+> forbid.
+>
+> The ceiling is what makes this non-obvious: `|v|` cannot simply be raised to 362 for every angle,
+> because a shallow rebound would then need a column component of 324, which breaks invariant one.
+> **256 is the largest magnitude every angle in the table can actually reach.** If you want the ball
+> faster, shorten the delay — → **timing-and-frame-loop** §6.
 
 **A flooring asymmetry that looks like a bug and is not:** the cell index is `floor(position)`, so
 from row 10.0 a velocity of −0.25 lands on 9.75 — already cell 9, on the very first frame — while
@@ -159,11 +177,19 @@ writing tests. `rebound_table` maps the index to a velocity pair:
 
 | Index | 0 | 1 | 2 | 3 (centre) | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|---|
-| row | −128 | −160 | −224 | −256 | −224 | −160 | −128 |
-| column | −256 | −192 | −128 | ±64 | +128 | +192 | +256 |
+| row | −128 | −181 | −222 | −248 | −222 | −181 | −128 |
+| column | −222 | −181 | −128 | ±64 | +128 | +181 | +222 |
+| angle from vertical | 60° | 45° | 30° | 14° | 30° | 45° | 60° |
+| **\|v\|** | 256 | 256 | 256 | 256 | 256 | 256 | 256 |
 
-Steep at the centre, shallow and wide at the edges. Dead centre keeps the ball's existing horizontal
-direction rather than forcing one, so the middle cell is not arbitrarily biased.
+Steep at the centre, shallow and wide at the edges — and **the same speed at every index**. Dead
+centre keeps the ball's existing horizontal direction rather than forcing one, so the middle cell is
+not arbitrarily biased.
+
+`reset_ball` serves at `(−181, +181)`, the same magnitude, 45° up and to the right. So does the
+inline `Vector` declaration in `pelota.asm` — and that one is easy to forget, because inline data is
+initialised **once per LOAD**, so it is what the very first ball of a fresh session flies at,
+long before `reset_ball` ever runs.
 
 ## 7. Why rebound variety had to land WITH completion detection
 
@@ -238,12 +264,23 @@ carry across levels and reset per game.
 | Routine | Resets | Leaves alone |
 |---|---|---|
 | `reset_ball` | `Coord`, `CoordFrac`, `Vector` | everything else |
-| `reset_round` | the above, plus `POSICION` to centre | `bricks_left`, `lives` |
+| `reset_round` | the above, plus the paddle: erases it, re-centres it, redraws it | `bricks_left`, `lives` |
 | `reset_game` | the above, plus `lives`, `ball_lost`, `levelCounter` | — |
 
-`reset_round` sets `POSICION+1` to the paddle's **current** column, not to 0, so the next
-`dibujarpala` erases the paddle where it actually is before redrawing it at the centre. Setting it to
-0 would leave the old paddle painted on screen after a lost ball.
+**`reset_round` erases and redraws the paddle ITSELF, and leaves `POSICION+1` at 0.** It must not
+defer that erase, and this is the second bug this file has had to record:
+
+`POSICION+1` is a single-slot "pending erase" — written by `nuevaposicion` *and* by `reset_round`,
+consumed only by `dibujarpala`. Nothing guarantees the consumer runs between two producers, and on
+the one frame that matters it does not: **the frame a ball is lost leaves `Pala_Juego` via
+`jp Ball_Lost`, so `dibujarpala` never runs that frame.** `reset_round` used to record the pending
+erase there, and on the next frame `nuevaposicion` — which runs first — overwrote `POSICION+1` with
+the current column before anything consumed it. The old paddle stayed painted, every later move only
+erased one column behind it, and the leftovers survived on screen as "duplicate paddles".
+
+**Rule: a pending erase must never have to survive a frame boundary.** Anything that moves the paddle
+outside the normal `nuevaposicion` → `dibujarpala` pair does its own erase and redraw on the spot.
+`reset_round` ends `jp dibujarpala` so the paddle does not blink out for a frame between the two.
 
 Inline `DB` initialisers run **once per load, not once per game**, which is why `reset_game` sets
 every one of these explicitly rather than trusting the declaration.
@@ -272,6 +309,10 @@ write — a second source of truth is a second thing to get wrong.
 - [ ] Are the wall tests still **range** comparisons?
 - [ ] Is the step still at most one cell per axis per frame, and `|velocity| ≤ $0100`?
 - [ ] Can the row velocity reach zero? (It must not.)
+- [ ] Is `|v|` still **256 at every source** — serve, inline `Vector`, and all seven table entries?
+      A bounce changes direction, never speed.
+- [ ] Does anything move the paddle outside `nuevaposicion` → `dibujarpala`? If so, does it erase and
+      redraw itself rather than leaving a pending erase in `POSICION+1`?
 - [ ] Does every new routine preserve **`IX`**?
 - [ ] Are you using `jp`, not `call`, for anything that leaves the frame loop?
 - [ ] Is the rebound table still varied? (Flattening it makes levels unfinishable — §7.)

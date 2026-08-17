@@ -48,7 +48,7 @@ automatically.**
 ### Current baseline
 
 ```
-Errors: 0, warnings: 0, compiled: 1500 lines
+Errors: 0, warnings: 0, compiled: 1538 lines
 8399 bytes, $8000-$A0CE
 ```
 
@@ -165,7 +165,7 @@ eye when something looks wrong.
 ### Every change, without exception
 
 - [ ] `./build.sh` is **0 errors, 0 warnings**.
-- [ ] `compiled: N lines` moved by roughly what you added (baseline **1500**).
+- [ ] `compiled: N lines` moved by roughly what you added (baseline **1538**).
 - [ ] `python3 tests/run_all.py` says **EVERY SUITE PASSED**.
 - [ ] The game still boots to the title screen, prompt, and a playable board.
 

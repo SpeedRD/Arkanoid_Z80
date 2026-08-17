@@ -58,14 +58,17 @@ def snapshot():
     """Freeze the machine, read the playfield and the ball cell, thaw.
 
     Reading 768 bytes takes a few milliseconds, during which a running game can
-    move the ball and redraw the paddle, so the attribute file and Coord would
-    not agree. Stopping the CPU makes them one consistent picture.
+    move the ball, redraw the paddle and destroy another brick, so the attribute
+    file, Coord and bricks_left would not agree. Stopping the CPU makes them one
+    consistent picture -- which is why the counter is read in HERE and not by the
+    caller a moment earlier.
     """
     z.cmd("enter-cpu-step")
     at = z.attrs()
     col, row = z.read_mem(L["Coord"], 2)
+    left = z.read_mem(L["bricks_left"], 1)[0]
     z.cmd("exit-cpu-step")
-    return at, (row, col)
+    return at, (row, col), left
 
 
 def brick_cells(at, ball):
@@ -164,7 +167,7 @@ check("three lives at the start of a game", var("lives")[0], 3)
 # That poll fires at the top of Mostrar_Mapa, before a brick is painted and
 # before the first dibujarpala, so give the opening frames time to draw.
 time.sleep(0.5)
-at, _ = snapshot()
+at, _, _ = snapshot()
 check("top border drawn", all(at[c] == BORDER for c in range(1, 31)), True)
 check("side borders drawn",
       all(at[r * 32] == BORDER and at[r * 32 + 31] == BORDER for r in range(24)),
@@ -195,9 +198,8 @@ check("paddle never leaves columns 1-24", 1 <= left <= 24 and 1 <= right <= 24, 
 print("\nthe ball destroys bricks -- and leaves nothing else damaged")
 before = start_game()
 time.sleep(6.0)
-after = var("bricks_left")[0]
+at, ball, after = snapshot()
 check("brick counter goes down", after < before, True)
-at, ball = snapshot()
 check("border still intact after play",
       all(at[c] == BORDER for c in range(1, 31)) and
       all(at[r * 32] == BORDER and at[r * 32 + 31] == BORDER for r in range(24)),

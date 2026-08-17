@@ -122,7 +122,7 @@ have not written down what removes it.
 by `--diff-filter=AD`: added, then deleted, **never having had any content.**
 
 `colisiones.asm` was the identical pattern one file later: created empty in `43848fe`, `INCLUDE`d,
-and **still 0 bytes twenty months later**. It is now 377 lines and the largest source file in the
+and **still 0 bytes twenty months later**. It is now 408 lines and the largest source file in the
 tree — but it sat there as a marker of intent for the entire life of the project before that.
 
 **Why.** Creating the file feels like starting the work, and the `INCLUDE` line assembles cleanly, so
@@ -349,6 +349,40 @@ writing a hardware assumption you have not watched execute.
 the emulated ULA** — so the game appears to ignore all input. That looks exactly like a keyboard bug.
 Restart the emulator before believing it. → **build-and-verify** §7
 
+## 14. Tests that restate the implementation instead of checking a property
+
+**What happened.** Three times now, a suite has been fully green while the thing it claimed to cover
+was broken:
+
+| Test | Why it could not fail |
+|---|---|
+| `SP identical at every restart` | Waited for `bricks_left != 0` to detect a restart — but after a game over that still holds the interrupted level's count, so it returned instantly, the game never restarted, and the same parked SP was sampled every time |
+| `hit index N` | Compared the rebound velocities against `TABLE = {...}`, a hardcoded **copy of the table in the source**. Tautological: any wrong-but-consistent table passes |
+| `previous-column shadow points at the old column so it gets erased` | Asserted the buggy design *was* the design. It locked in the deferred erase that the ball-loss frame silently discarded |
+
+**Why.** All three are the same move: asserting *what the code does* rather than *what must be true*.
+That feels like coverage, produces a green line, and is worth nothing. The rebound table is the
+sharpest case — the suite checked every component was ≤ 256 and that each entry matched a literal,
+but never that the ball's **speed** was the same before and after a bounce, which is the actual
+requirement. So a table with a 45% speed spread and a serve 41% faster than any rebound sailed
+through ~90 assertions and was found by a human playing the game.
+
+**The rule now.** **Assert a property, derived from the running machine, that could plausibly fail.**
+Prefer bounds and invariants over exact values: "`|v|` is the same from every source" survives a
+retune; "index 3 is `(-256, 64)`" does not, and tells you nothing anyway. If a test duplicates a
+table, an address or a sequence from the source, ask what it would catch.
+
+**And prove it: reintroduce the bug and watch the test go red.** Every regression guard added in this
+project after the vacuous stack guard has been verified that way, and two of them were found to be
+worthless only when someone tried it.
+
+**How to notice.**
+
+- Your expected value is copied from the implementation.
+- Your test would still pass if the routine under test did nothing.
+- Your "did X happen?" signal is a variable that can already hold the expected value.
+- You have never seen the assertion fail.
+
 ## Smells to check in a diff
 
 - [ ] A routine ending in `jr <its own label>` — something is trying to own the loop again (§2).
@@ -367,3 +401,5 @@ Restart the emulator before believing it. → **build-and-verify** §7
 - [ ] A whole-byte comparison on a port read, instead of masking the bits you own (§13).
 - [ ] A behavioural claim you have not watched execute. Reading source finds logic errors; it does
       not find wrong assumptions about hardware (§13). `python3 tests/run_all.py` is cheap.
+- [ ] A test whose expected value is copied from the implementation, or that you have never seen
+      fail (§14). Reintroduce the bug and check it goes red.

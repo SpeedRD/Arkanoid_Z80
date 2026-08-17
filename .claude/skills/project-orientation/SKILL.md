@@ -12,7 +12,7 @@ A ZX Spectrum 48K Arkanoid clone in Z80 assembly. `DEVICE ZXSPECTRUM48` and `org
 run it is to have an emulator/debugger load `main.bin` at `$8000` and jump there. Built with
 **sjasmplus** (dialect-specific, not portable to pasmo/z80asm) via `./build.sh`. Run under
 **ZEsarUX + DeZog over zrcp** (`.vscode/launch.json:5-17`, `.vscode/tasks.json:5-15`). Total source:
-~1476 lines across 11 `.asm` files plus a 768-byte font blob, and a Python test harness in `tests/`.
+~1514 lines across 11 `.asm` files plus a 768-byte font blob, and a Python test harness in `tests/`.
 
 ## 2. Current state
 
@@ -23,7 +23,7 @@ work — and all of it is covered by the suites in `tests/`. → **build-and-ver
 
 What this used to say — that `colisiones.asm` was a 0-byte file, that the paddle was decorative, that
 you could not lose and levels only advanced on the F key — is **no longer true**. `colisiones.asm` is
-now the largest source file in the tree (377 lines).
+now the largest source file in the tree (408 lines).
 
 Mutable game state is **fifteen bytes**, still declared inline next to the routine that owns it:
 `POSICION` (`$9B10`, 2 B), `levelCounter` (`$9E74`, 1 B), `Coord` (`$9ECA`, 2 B), `CoordFrac`
@@ -54,7 +54,7 @@ There **is** now a reset routine — three, in fact: `reset_ball`, `reset_round`
 | `pala.asm` | 98 | `POSICION`, `dibujarpala`/`dibujarpalacolor`, `teclado`, `nuevaposicion`, `esperar` | Working. **The S/G hang is fixed and the F-key hook is gone** |
 | `pelota.asm` | 123 | `Coord`/`CoordFrac`/`Vector`, `ball`, `step_ball`, `PosXY`, `Esperar_pelota` | Working. Rewritten for read-back-and-restore and 8.8 fixed-point motion |
 | `Partida.asm` | 81 | `Juego` + `Pala_Juego` frame loop, `Ball_Lost`, `Game_Over`, `Fin_Juego`, `ReinicioJuego` | Working. Completion and ball-loss are checked in the frame loop; every exit uses `jp`, never `call` |
-| `colisiones.asm` | 377 | `classify_cell`, `probe_cell`, `resolve_collisions`, `destroy_brick`, `paddle_hit`, `rebound_table`, the resets, and all the new state | Working — the core of the game |
+| `colisiones.asm` | 408 | `classify_cell`, `probe_cell`, `resolve_collisions`, `destroy_brick`, `paddle_hit`, `rebound_table`, the resets, and all the new state | Working — the core of the game |
 | `charset.bin` | — | 768-byte 8×8 font | Binary asset |
 | `tests/` | — | ZRCP-driven Python suites | `python3 tests/run_all.py` |
 

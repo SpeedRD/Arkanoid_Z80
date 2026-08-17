@@ -11,7 +11,7 @@ description: Use when writing or editing any .asm file in this repo — adding a
 `sjasmplus118.exe` at a dead Windows path is **gone** — `.vscode/tasks.json:7` now invokes plain
 `sjasmplus`. Nothing here needs v1.18.
 
-Current regression baseline: **0 errors, 0 warnings, 1500 compiled lines.** Treat that as the line to
+Current regression baseline: **0 errors, 0 warnings, 1538 compiled lines.** Treat that as the line to
 hold — a new warning is a regression, and the line count must move by roughly what you added.
 
 **Build with `./build.sh`, not raw sjasmplus.** sjasmplus exits 0 even when it emits warnings, so the
@@ -141,7 +141,7 @@ mnemonic.
 2. **Reordering relocates every address.** All ten files are concatenated into one `org $8000` image,
    so swapping two `INCLUDE` lines moves `CHARSET` (`$96EA`), `POSICION` (`$9B10`), the map data
    (`$9BEA`+), `Coord`/`Vector` (`$9ECA`/`$9ECE`) and every routine entry point. This is not
-   hypothetical: every one of those addresses changed when `colisiones.asm` went from 0 bytes to 377
+   hypothetical: every one of those addresses changed when `colisiones.asm` went from 0 bytes to 408
    lines, which is why nothing should hardcode them.
 3. **One ordering constraint is genuinely load-bearing**, and it is not about includes so much as
    about what `Mapas.asm` emits: `map0..map3` must stay back-to-back in memory, because
@@ -157,7 +157,7 @@ computes its addresses inline at `:5,16,27`, and its only `call` is to `CLEARSCR
 ## 8. Where new code goes
 
 **Collision code goes in `colisiones.asm`**, which is `INCLUDE`d last and is now the largest source
-file in the tree (377 lines). No build change is needed to add to it.
+file in the tree (408 lines). No build change is needed to add to it.
 
 For a genuinely new file:
 

@@ -54,8 +54,17 @@ column 0 is never a legal paddle position: `nuevaposicion` rejects a landing on 
 and on column ≥ 25 (`ret nc`), giving a legal range of columns **1-24**, so a 7-cell paddle spans
 1-30 and never touches the borders. **The bounds are correct — do not "fix" them.**
 
-Note that `reset_round` deliberately sets byte 1 to the paddle's **current** column rather than to 0,
-so the paddle gets erased where it actually is before being redrawn at the centre.
+> **Byte 1 is a single-slot PENDING ERASE, and that is a hazard.** It is written by `nuevaposicion`
+> *and* by `reset_round`, but consumed only by `dibujarpala` — and nothing guarantees the consumer
+> runs between two producers. On the one frame where it does not, the write is silently lost: **the
+> frame a ball is lost leaves `Pala_Juego` via `jp Ball_Lost`, so `dibujarpala` never runs**, and the
+> next frame's `nuevaposicion` (which runs first) overwrites byte 1 before anything consumed it.
+> `reset_round` used to record its erase there; the old paddle was consequently never erased and
+> stayed on screen as a "duplicate paddle".
+>
+> **Rule: a pending erase must not have to survive a frame boundary.** `reset_round` now erases and
+> redraws the paddle itself and leaves byte 1 at 0. Anything else that moves the paddle outside the
+> `nuevaposicion` → `dibujarpala` pair must do the same.
 
 ### Not gameplay state
 
@@ -109,7 +118,8 @@ Derived by reading each routine body — not from comments.
 | `destroy_brick` | `cand_cell` | — | `AF`, `DE`, `HL` | `BC`, `IX` | Clears both cells, decrements `bricks_left` once, floored at 0. |
 | `paddle_hit` | `NewCol+1`, `POSICION` | `Vector` set, or `ball_lost` set | `AF`, `DE`, `HL` | `BC`, `IX` | Hit index from the column the ball is **heading for**. |
 | `flip_row_velocity` / `flip_col_velocity` | — | one `Vector` component negated | `AF`, `HL` | `BC`, `DE`, `IX` | |
-| `reset_ball` / `reset_round` / `reset_game` | — | see §5 | `AF`, `HL` | `BC`, `DE`, `IX` | |
+| `reset_ball` | — | `Coord`, `CoordFrac`, `Vector` | `AF`, `HL` | `BC`, `DE`, `IX` | Serves at `(-181,+181)`, `\|v\|` = 256 — the same speed as every rebound |
+| `reset_round` / `reset_game` | — | see §5 | `AF`, **`BC`**, **`DE`**, `HL` | `IX` | **Now clobber `BC`/`DE`** because they draw the paddle via `dibujarpalacolor`. No caller depends on them; `IX` still survives, which is what `Fin_Juego` needs |
 
 ### `pala.asm`
 
@@ -198,8 +208,8 @@ one ended.
 
 | Routine | Sets | Called from |
 |---|---|---|
-| `reset_ball` | `Coord` → (row 20, col 16), `CoordFrac` → 0, `Vector` → up-and-right at one cell/frame | `reset_round` |
-| `reset_round` | the above, plus `POSICION` byte 0 → 14 and byte 1 → the paddle's *current* column | `Fin_Juego` (level change), `Ball_Lost` |
+| `reset_ball` | `Coord` → (row 20, col 16), `CoordFrac` → 0, `Vector` → `(-181,+181)` — 45° up and right at `\|v\|` = 256 | `reset_round` |
+| `reset_round` | the above, plus: **erases the paddle where it is**, sets `POSICION` byte 0 → 14 and byte 1 → **0**, and **redraws** the paddle (`jp dibujarpala`) | `Fin_Juego` (level change), `Ball_Lost` |
 | `reset_game` | the above, plus `lives` → 3, `ball_lost` → 0, `levelCounter` → 0 | `Game_Over`, `ReinicioJuego` |
 
 `bricks_left` is not in any of them: it is reloaded from the new map's byte 0 by `Mostrar_Mapa`, which

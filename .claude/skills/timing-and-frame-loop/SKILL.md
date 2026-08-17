@@ -122,10 +122,15 @@ constant.
 | A or D held | 32.3 + short poll + `tecladofin` + 7.6 | **≈ 42–45 ms**, varying — see §4 |
 
 **The ball advances at most one 8-pixel cell per axis per frame** — `step_ball` adds `Vector` to the
-8.8 position once per call, and the velocity is clamped to one cell. At full speed that is ≈ 22.6
-cells/second, and **it is a function of the total loop time, not of `Esperar_pelota` alone.** At a
-shallower rebound angle the ball covers a cell on one axis every few frames instead of every frame,
-which is the point of the fixed-point representation.
+8.8 position once per call, and no component may exceed one cell. **Its speed is constant: `|v|` =
+256 = exactly one cell of travel per frame, ≈ 22.6 cells/second**, from every velocity source. Only
+the direction varies, so at a shallow rebound angle the ball covers a cell on one axis every few
+frames instead of every frame — that staircase is the fixed-point representation working, not a
+stutter. Speed **is a function of the total loop time, not of `Esperar_pelota` alone.**
+
+Getting that magnitude wrong is what made the ball feel erratic: it was once served at `|v|` = 362
+and rebounded at 250-286, so it visibly slowed on first paddle contact and never recovered.
+→ **collision-and-physics** §3
 
 **The collision work costs nothing worth budgeting.** `step_ball`, up to three `classify_cell` calls
 and the occasional `destroy_brick` are a few hundred T-states against `Esperar_pelota`'s ~113,000 —

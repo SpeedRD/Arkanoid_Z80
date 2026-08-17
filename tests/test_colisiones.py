@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Ball/brick destruction, the brick counter, and the paddle rebound angle."""
+import math
+
 from unit import Unit
 
 u = Unit()
@@ -132,8 +134,8 @@ check("border intact", u.cell(0, 15), BORDERC)
 check("border does not decrement the counter", bricks_left(), 50)
 
 print("\npaddle rebound angle -- where it hits decides where it goes")
-TABLE = {0: (-128, -256), 1: (-160, -192), 2: (-224, -128), 3: (-256, 64),
-         4: (-224, 128), 5: (-160, 192), 6: (-128, 256)}
+TABLE = {0: (-128, -222), 1: (-181, -181), 2: (-222, -128), 3: (-248, 64),
+         4: (-222, 128), 5: (-181, 181), 6: (-128, 222)}
 for idx, want in TABLE.items():
     blank_playfield()
     u.poke(L["POSICION"], [10, 0])
@@ -144,11 +146,58 @@ for idx, want in TABLE.items():
 
 check("every rebound has a non-zero row velocity",
       all(v[0] != 0 for v in TABLE.values()), True)
+# A bound, not an exact value: what matters is that no component can push the ball
+# more than one cell per axis per frame, not what the largest one happens to be.
 check("no rebound component exceeds one cell per frame",
-      max(max(abs(v[0]), abs(v[1])) for v in TABLE.values()), ONE)
+      max(max(abs(v[0]), abs(v[1])) for v in TABLE.values()) <= ONE, True)
 check("rebound is steepest at the centre, shallowest at the edges",
       [abs(TABLE[i][0]) for i in range(7)],
-      [128, 160, 224, 256, 224, 160, 128])
+      [128, 181, 222, 248, 222, 181, 128])
+
+print("\nSPEED IS CONSTANT -- every velocity source has the same magnitude")
+# This is the check that was missing, and its absence is why the ball felt erratic.
+# The old suite asserted each COMPONENT was <= 256 and that the table matched a
+# hardcoded copy of itself -- both of which a wrong table passes happily. Nothing
+# compared magnitudes, so a serve of |v|=362 against rebounds of 250-286 went
+# unnoticed: the ball launched 41% too fast and slowed for good on first contact.
+#
+# Every magnitude below is read back from the RUNNING CODE, never from a table
+# literal in this file.
+speeds = {}
+
+u.call("reset_ball")
+speeds["serve"] = math.hypot(*u.velocity())
+
+for idx in range(7):
+    blank_playfield()
+    u.poke(L["POSICION"], [10, 0])
+    u.poke(L["ball_lost"], [0])
+    u.set_ball(22, 10 + idx)
+    u.set_velocity(ONE, 0)
+    u.call("ball")
+    speeds[f"rebound {idx}"] = math.hypot(*u.velocity())
+
+blank_playfield()                       # wall bounce: negation must preserve magnitude
+u.set_ball(10, 30)
+u.set_velocity(-181, 181)
+u.call("ball")
+speeds["wall bounce"] = math.hypot(*u.velocity())
+
+blank_playfield()                       # brick bounce: likewise
+u.set_cell(9, 15, BRICK)
+u.set_cell(9, 16, BRICK)
+u.poke(L["bricks_left"], [9])
+u.set_ball(10, 15)
+u.set_velocity(-181, 181)
+u.call("ball")
+speeds["brick bounce"] = math.hypot(*u.velocity())
+
+for name, s in speeds.items():
+    print(f"       {name:14} |v| = {s:6.1f}")
+lo, hi = min(speeds.values()), max(speeds.values())
+check("every velocity source is within 2% of the same speed",
+      round((hi - lo) / lo, 3) <= 0.02, True)
+check("...and that speed is one cell per frame of travel", round(lo), 256)
 
 print("\nthe dead-centre cell keeps the ball's existing horizontal direction")
 blank_playfield()
@@ -159,14 +208,14 @@ u.poke(L["POSICION"], [10, 0])
 u.set_ball(22, 13, frac_col=0x80)
 u.set_velocity(ONE, -64)                # arriving while moving LEFT
 u.call("ball")
-check("centre hit moving left stays left", u.velocity(), (-256, -64))
+check("centre hit moving left stays left", u.velocity(), (-248, -64))
 
 blank_playfield()
 u.poke(L["POSICION"], [10, 0])
 u.set_ball(22, 13)
 u.set_velocity(ONE, 64)                 # arriving while moving RIGHT
 u.call("ball")
-check("centre hit moving right stays right", u.velocity(), (-256, 64))
+check("centre hit moving right stays right", u.velocity(), (-248, 64))
 
 print("\nmissing the paddle -- floor still bounces at this stage")
 blank_playfield()

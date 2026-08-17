@@ -7,6 +7,8 @@ of complete frames. That single assertion is what proves the erase-restore fix
 landed -- it is the difference between the ball painting holes through the
 bricks and the border, and the ball leaving the playfield alone.
 """
+import math
+
 from unit import Unit
 
 u = Unit()
@@ -150,8 +152,52 @@ for _ in range(300):
 bad = sorted(c for c in visited
              if c[0] in (0, 23) or c[1] in (0, 31))
 check("no visit to row 0/23 or column 0/31 in 300 frames", bad, [])
-check("stayed inside rows 1-22", (min(r for r, _ in visited),
-                                  max(r for r, _ in visited)), (1, 22))
+# A BOUND, not the exact extremes reached: how far the ball happens to travel in
+# 300 frames depends on the rebound angles it picks up, so pinning the min/max
+# makes this fail whenever the physics is retuned without anything being wrong.
+check("never outside rows 1-22",
+      [r for r, _ in visited if not 1 <= r <= 22], [])
+check("never outside columns 1-30",
+      [c for _, c in visited if not 1 <= c <= 30], [])
+
+print("\nMULTI-FRAME INVARIANTS across hundreds of real collisions")
+# Per-frame checks over a long live-ish run, rather than one frame at a time in a
+# hand-built scenario. This is what catches a rebound that quietly changes the ball's
+# SPEED instead of only its direction -- the single-frame tests all passed while the
+# ball was being served 41% faster than any rebound could return it.
+draw_level()
+u.poke(L["POSICION"], [12, 0])
+u.poke(L["ball_lost"], [0])
+u.call("reset_ball")
+prev = u.ball()
+speed0 = math.hypot(*u.velocity())
+bad_step, bad_comp, zero_row, bad_speed = [], [], [], []
+for i in range(400):
+    u.call("ball")
+    u.poke(L["ball_lost"], [0])          # keep it in play; losses are tested elsewhere
+    cur = u.ball()
+    vr, vc = u.velocity()
+    if abs(cur[0] - prev[0]) > 1 or abs(cur[1] - prev[1]) > 1:
+        bad_step.append((i, prev, cur))
+    if abs(vr) > ONE or abs(vc) > ONE:
+        bad_comp.append((i, vr, vc))
+    if vr == 0:
+        zero_row.append((i, vr, vc))
+    if abs(math.hypot(vr, vc) - speed0) / speed0 > 0.02:
+        bad_speed.append((i, vr, vc, round(math.hypot(vr, vc), 1)))
+    prev = cur
+def summarise(rows):
+    """Count plus a sample -- a 400-frame violation list is unreadable."""
+    return f"{len(rows)} (e.g. {rows[:3]})" if rows else "0"
+
+
+check("no axis ever steps more than one cell in 400 frames",
+      summarise(bad_step), "0")
+check("no velocity component ever exceeds one cell/frame",
+      summarise(bad_comp), "0")
+check("the row velocity is never zero", summarise(zero_row), "0")
+check("the ball's SPEED never changes by more than 2%",
+      summarise(bad_speed), "0")
 
 print("\nERASE-RESTORE: a completed frame leaves the playfield exactly as it was")
 # On an empty field there is nothing for the ball to legitimately change, so the
